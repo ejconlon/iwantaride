@@ -1,11 +1,33 @@
 iwantaride
 ==========
+
+PYTHON SETUP
+sudo python -m easy_install bottle
+sudo python -m easy_install redis
+sudo python -m easy_install bottle-redis
+
+REDIS SETUP
+# install with
+brew install redis
+# or
+sudo port install redis
+# run the server with
+redis-server /usr/local/etc/redis.conf
+# run the command line client with
+redis-cli
+
+# commands are like
+SET foo bar
+GET foo
+
+RUNNING THE APP
+Start redis first!
 To run, open a terminal, cd to this directory and type
 python app.py
 
 Then go to http://localhost:5000 in your browser.
 
-
+==============
 Heroku push instructions:
 Instructions cribbed from
 http://blog.heroku.com/archives/2011/9/28/python_and_django/

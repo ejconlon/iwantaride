@@ -12,6 +12,7 @@ SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
+RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 
 import os, urlparse, sha
 from bottle import *
@@ -47,6 +48,13 @@ def add_user(name, email, pwhash, uid=None):
         REDIS.set('pwhash:%s' % uid, pwhash)
         REDIS.set('name:%s' % uid, name)
         return uid
+
+def add_ride(ride_dict, rid=None):
+    if rid is None:
+        rid = REDIS.incr('global:rid_source')
+    for k in RIDE_KEYS:
+        REDIS.set(k+":"+rid, ride_dict[k])
+    return rid
 
 def get_session():
     return request.environ.get('beaker.session')
@@ -273,7 +281,9 @@ def load_lines(schema, lines):
             print 'Adding user', user
             add_user(user['name'], user['email'], hash_password(user['password']), user['uid'])
     elif schema == 'rides':
-        pass
+        for ride in field_dicts:
+            print 'Adding ride', ride
+            add_ride(ride, ride['rid'])
     else:
         abort(404, "Unkown schema: "+schema)
 

@@ -31,5 +31,5 @@ pip-log.txt
 *.swp
 *.bak
 *.tmp
-data/
-temp/
+data/*
+temp/*

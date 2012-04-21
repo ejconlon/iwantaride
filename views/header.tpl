@@ -43,7 +43,7 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li><a href="/">Home</a></li>
-	      %if defined('session') and 'email' in session:
+	      %if 'email' in session:
 	      <li><a href="/logout">Logout {{ session['email'] }}</a></li>
 	      %else:
 	      <li><a href="/login">Login</a></li>
@@ -55,20 +55,25 @@
       </div>
     </div>
 
-    %if defined('error') and len(error):
-    <div class="error">{{ error }}</div>
+    %if 'error' in session:
+    <div class="error">{{ session['error'] }}</div>
+    %    del session['error']
     %end
 
-    %if defined('warning') and len(warning):
-    <div class="warning">{{ warning }}</div>
+    %if 'warning' in session:
+    <div class="warning">{{ session['warning'] }}</div>
+    %    del session['warning']
     %end
 
-    %if defined('success') and len(success):
-    <div class="success">{{ success }}</div>
+    %if 'success' in session:
+    <div class="success">{{ session['success'] }}</div>
+    %    del session['success']
     %end
 
-    %if defined('info') and len(info):
-    <div class="info">{{ info }}</div>
+    %if 'info' in session:
+    <div class="info">{{ session['info'] }}</div>
+    %    del session['info']
     %end
+
 
     <div class="container">

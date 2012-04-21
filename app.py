@@ -51,15 +51,26 @@ def clear_session():
     s.save()
     return s
 
-def update_session(email, uid):
+def add_login_to_session(email, uid):
     s = get_session()
     s['email'] = email
     s['uid'] = uid
     s.save()
     return s
 
+def update_session(**kwargs):
+    s = get_session()
+    s.update(kwargs)
+    s.save()
+    return s
+
 def session_dict(**kwargs):
-    d = { "session": get_session() }
+    s = get_session()
+    for x in ["error", "warning", "info", "success"]:
+        if x in kwargs:
+            s[x] = kwargs[x]
+            del kwargs[x]
+    d = { "session" : s }
     d.update(kwargs)
     return d
 
@@ -104,14 +115,17 @@ def verify_login():
     pwhash = hash_password(password)
 
     if len(email) == 0 or len(password) == 0:
-        return template("login", session_dict(error = "Fill in all the fields, thanks."))
+        update_session(error = "Fill in all the fields, thanks.")
+        return redirect("/login")
 
     uid = find_user(email, pwhash)
     if uid is None:
-        return template("login", session_dict(error = "We couldn't log you in with those credentials."))
+        update_session(error = "We couldn't log you in with those credentials.")
+        return redirect("/login")
     else:
-        update_session(email, uid)
-        return template("main", session_dict(success = "Thanks for logging in.", text = "Where are you headed?"))
+        add_login_to_session(email, uid)
+        update_session(success = "Thanks for logging in.")
+        return redirect("/")
 
 @route("/signup")
 @view("signup")
@@ -125,22 +139,27 @@ def verify_signup():
     password_again = request.forms.get('password_again')
 
     if len(email) == 0 or len(password) == 0 or len(password_again) == 0:
-        return template("signup", session_dict(error = "Fill in all the fields, thanks."))
+        update_session(error = "Fill in all the fields, thanks.")
+        return redirect("/signup")
     elif password != password_again:
-        return template("signup", session_dict(error ="Your passwords don't match."))
+        update_session(error = "Your passwords don't match.")
+        return redirect("/signup")
     
     pwhash = hash_password(password)
     uid = add_user(email, pwhash)
     if uid:
-        update_session(email, uid)
-        return template("main", session_dict(success = "Thanks for signing up.", text = "Where are you headed?"))
+        add_login_to_session(email, uid)
+        update_session(success = "Thanks for signing up.")
+        return redirect("/")
     else:
-        return template("signup", session_dict(error = "That email is already registered."))
+        update_session(error = "That email is already registered.")
+        return redirect("/signup")
 
 @route("/logout", method="GET")
 def logout():
     clear_session()
-    return template("main", session_dict(info = "Come back soon.", text = "Where are you headed?"))
+    update_session(info = "Come back soon.")
+    return redirect("/")
 
 ###########
 # Dump db info

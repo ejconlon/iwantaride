@@ -1,4 +1,4 @@
-%include header extra_title = "Login", session=session, error=error if defined('error') else '', warning=warning if defined('warning') else '', success=success if defined('success') else '', info=info if defined('info') else '' 
+%include header extra_title = "Login", session=session
 
 <p> Login or <a href="/signup">signup</a>. (Facebook Connect coming soon!)</p>
 

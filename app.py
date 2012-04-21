@@ -13,6 +13,7 @@ DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
+RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
 
 import os, urlparse, sha
 from bottle import *
@@ -55,6 +56,14 @@ def add_ride(ride_dict, rid=None):
     for k in RIDE_KEYS:
         REDIS.set(k+":"+rid, ride_dict[k])
     return rid
+
+def add_response(response_dict, reid=None):
+    if reid is None:
+        reid = REDIS.incr('global:reid_source')
+    for k in RESPONSE_KEYS:
+        REDIS.set(k+":"+reid, response_dict[k])
+    return reid
+
 
 def get_session():
     return request.environ.get('beaker.session')
@@ -268,7 +277,7 @@ def db_show():
     return render_dict(d)
 
 def splitline(line):
-    return [x for x in (y.strip() for y in line.split(',')) if len(x)]
+    return [y.strip() for y in line.split(',')]
 
 def load_lines(schema, lines):
     lines = [line.strip() for line in lines if len(line.strip())]
@@ -284,6 +293,10 @@ def load_lines(schema, lines):
         for ride in field_dicts:
             print 'Adding ride', ride
             add_ride(ride, ride['rid'])
+    elif schema == 'responses':
+        for response in field_dicts:
+            print 'Adding response', response
+            add_response(response, response['reid'])
     else:
         abort(404, "Unkown schema: "+schema)
 

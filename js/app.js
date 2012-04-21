@@ -7,4 +7,21 @@ function initialize() {
   var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 }
 
-window.onload = initialize;
+
+var geocoder = null;
+var lat = null;
+var lng = null;
+
+$(document).ready(function() {
+    if (google.loader.ClientLocation) {
+	lat = google.loader.ClientLocation.latitude;
+	lng = google.loader.ClientLocation.longitude;
+    } else {
+	alert('DEBUG: Location set manually');
+	lat = '36.9742';
+	lng = '-122.0297';
+    }
+
+    initialize();
+});
+

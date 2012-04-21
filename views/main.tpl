@@ -65,6 +65,7 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <!-- But really should be async loaded -->
     <script type="text/javascript" src="/js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript" src="/js/app.js"></script>
     %if show_map:
     <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyBj3Cz1ShYUnODXeZH8IDll6rNq_GTFH6E&sensor=true"></script>

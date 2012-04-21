@@ -12,6 +12,7 @@ SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
+RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 
 import os, urlparse, sha
 from bottle import *
@@ -37,15 +38,23 @@ def find_user_and_name(email, pwhash):
             return uid, name
     return None, None
 
-def add_user(name, email, pwhash):
+def add_user(name, email, pwhash, uid=None):
     if user_exists(email):
         return None
     else:
-        uid = REDIS.incr('global:uid_source')
+        if uid is None:
+            uid = REDIS.incr('global:uid_source')
         REDIS.set('email:%s:uid' % email, uid)
         REDIS.set('pwhash:%s' % uid, pwhash)
         REDIS.set('name:%s' % uid, name)
         return uid
+
+def add_ride(ride_dict, rid=None):
+    if rid is None:
+        rid = REDIS.incr('global:rid_source')
+    for k in RIDE_KEYS:
+        REDIS.set(k+":"+rid, ride_dict[k])
+    return rid
 
 def get_session():
     return request.environ.get('beaker.session')
@@ -224,6 +233,15 @@ def render_row(row):
         return template('dump', row=row)
     return HTTPError(404, "Page not found")    
 
+def render_dict(d):
+    if d:
+        row = ""
+        for k in d:
+            row += k + " => "+d[k]+", \n"
+        return template('dump', row=row)
+    return HTTPError(404, "Page not found")    
+
+
 @route("/db/get/:item")
 def db_get(item):
     return render_row(REDIS.get(item))
@@ -235,6 +253,58 @@ def db_set(item, value):
 @route("/db/hash/:item")
 def db_hash(item):
     return render_row(hash_password(item))
+
+@route("/db/drop")
+def db_drop():
+    print "DROPPING DATABASE!"
+    return render_row(REDIS.flushdb())
+
+@route("/db/show")
+def db_show():
+    keys = REDIS.keys("*")
+    d = {}
+    for k in keys:
+        d[k] = REDIS.get(k)
+    return render_dict(d)
+
+def splitline(line):
+    return [x for x in (y.strip() for y in line.split(',')) if len(x)]
+
+def load_lines(schema, lines):
+    lines = [line.strip() for line in lines if len(line.strip())]
+    field_names = splitline(lines[0])
+    field_values = map(splitline, lines[1:])    
+    field_dicts = [dict(zip(field_names, x)) for x in field_values]
+    print field_names
+    if schema == 'users':
+        for user in field_dicts:
+            print 'Adding user', user
+            add_user(user['name'], user['email'], hash_password(user['password']), user['uid'])
+    elif schema == 'rides':
+        for ride in field_dicts:
+            print 'Adding ride', ride
+            add_ride(ride, ride['rid'])
+    else:
+        abort(404, "Unkown schema: "+schema)
+
+@route("/db/loadfixture/:schema/:filename")
+def db_loadfixture(schema, filename):
+    print "Loading schema "+schema
+    print "Loading filename "+filename
+    lines = []
+    with open('./fixtures/'+filename, 'r') as f:
+        lines = f.readlines()
+    load_lines(schema, lines)
+
+@route("/db/loadpost/:schema", method="POST")
+def db_loadpost(schema):
+    print "Loading schema "+schema
+    rows = request.forms.get('payload')
+    print rows
+    load_lines(schema, rows.split('\n'))
+
+#########
+# Main block - starts the server
 
 if __name__ == "__main__":
     if os.environ.has_key('REDISTOGO_URL'):

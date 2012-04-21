@@ -1,4 +1,4 @@
-.info, .success, .warning, .error, .validation {
+.info, .success, .warning, .error, .validation, .flowbutton {
 border: 1px solid;
 margin: 10px 0px;
 padding:15px 10px 15px 50px;
@@ -24,4 +24,22 @@ background-color: #FEEFB3;
 color: #D8000C;
 background-color: #FFBABA;
 /*background-image: url('/img/error.png');*/
+}
+
+.flowbutton {
+font-weight:bold;
+font-size:14pt;    
+}
+
+#wantaride {
+
+/*background-color: #BDE5F8;*/
+}
+
+#havearide {
+
+}
+
+#whosriding {
+
 }

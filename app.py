@@ -9,6 +9,10 @@ GMAPS_SRC="http://maps.googleapis.com/maps/api/js?key=%s&sensor=true" % GMAPS_AP
 
 SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 
+DEFAULT_LAT = '36.9742';
+DEFAULT_LON = '-122.0297';
+
+
 import os, urlparse, sha
 from bottle import *
 from beaker.middleware import SessionMiddleware
@@ -58,6 +62,21 @@ def add_login_to_session(email, uid):
     s.save()
     return s
 
+def add_lat_lon_to_session():
+    lat = request.forms.get('lat')
+    lon = request.forms.get('lon')
+    if lat is None or lon is None or len(lat) == 0 or len(lon) == 0:
+        print "Missing lat/lon - setting default"
+	lat = DEFAULT_LAT
+	lon = DEFAULT_LON
+    else:
+        print "Setting lat/lon (%s, %s)" % (lat, lon)
+    s = get_session()
+    s['lat'] = lat
+    s['lon'] = lon
+    s.save()
+    return s
+
 def update_session(**kwargs):
     s = get_session()
     s.update(kwargs)
@@ -73,6 +92,16 @@ def session_dict(**kwargs):
     d = { "session" : s }
     d.update(kwargs)
     return d
+
+def get_lat_lon():
+    s = get_session()
+    if 'lat' in s and 'lon' in s:
+        return s['lat'], s['lon']
+    else:
+        return DEFAULT_LAT, DEFAULT_LON
+
+def get_ride_list(lat, lon):
+    return ["ride 1", "ride 2"]
 
 ############
 # Static resource handlers
@@ -99,9 +128,9 @@ def img_static(filename):
 # Main page
 
 @route("/")
-@view("main")
+@view("flow")
 def landing_page():
-    return session_dict(text = "Where are you headed?")
+    return session_dict()
 
 @route("/login")
 @view("login")
@@ -124,6 +153,7 @@ def verify_login():
         return redirect("/login")
     else:
         add_login_to_session(email, uid)
+        add_lat_lon_to_session()
         update_session(success = "Thanks for logging in.")
         return redirect("/")
 
@@ -149,6 +179,7 @@ def verify_signup():
     uid = add_user(email, pwhash)
     if uid:
         add_login_to_session(email, uid)
+        add_lat_lon_to_session()
         update_session(success = "Thanks for signing up.")
         return redirect("/")
     else:
@@ -160,6 +191,27 @@ def logout():
     clear_session()
     update_session(info = "Come back soon.")
     return redirect("/")
+
+@route("/make/:haveorwant")
+@view("make")
+def make(haveorwant):
+    return session_dict(haveorwant=haveorwant)
+
+@route("/verify_make", method="POST")
+def verify_make():
+    abort(404, "NOT IMPLEMENTED")
+
+@route("/rides")
+@view("rides")
+def rides():
+    lat, lon = get_lat_lon()
+    ride_list = get_ride_list(lat, lon)
+    return session_dict(ride_list=ride_list)
+
+@route("/about")
+@view("about")
+def about():
+    return session_dict()
 
 ###########
 # Dump db info
@@ -199,4 +251,7 @@ if __name__ == "__main__":
     app = SessionMiddleware(default_app(), session_opts)
 
     port = int(os.environ.get("PORT", 5000))
+    debug_flag = bool(os.environ.get("DEBUG", False))
+    if debug_flag:
+        debug(True)
     run(host='0.0.0.0', port=port, app=app)

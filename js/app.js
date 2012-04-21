@@ -5,7 +5,6 @@ function initialize() {
     mapTypeId: google.maps.MapTypeId.ROADMAP
   }
   var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-    alert("LOADED!");
 }
 
 // TODO for some reason document.body.appendChild erases... everything...

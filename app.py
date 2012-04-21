@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-import os
+import os, urlparse
 from bottle import *
 import redis
-from bottle.ext import redis as redis_plugin
+
+# set in main block
+REDIS = None
 
 ############
 # Static resource handlers
@@ -26,7 +28,7 @@ def img_static(filename):
 
 @route("/")
 @view("main")
-def main():
+def landing_page():
     return dict(title = "I Want A Ride!", content = "Where are you headed?")
 
 ###########
@@ -38,19 +40,21 @@ def render_row(row):
     return HTTPError(404, "Page not found")    
 
 @route("/db/get/:item")
-def db_get(item, rdb):
-    return render_row(rdb.get(item))
+def db_get(item):
+    return render_row(REDIS.get(item))
 
 @route("/db/set/:item/:value")
-def db_set(item, value, rdb):
-    return render_row(rdb.set(item, value))
+def db_set(item, value):
+    return render_row(REDIS.set(item, value))
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    #redis_port = int(os.environ.get("REDIS_PORT", 6379))
-    redis_host = os.environ.get("REDIS_HOST", "localhost")
+    if os.environ.has_key('REDISTOGO_URL'):
+        urlparse.uses_netloc.append('redis')
+        url = urlparse.urlparse(os.environ['REDISTOGO_URL'])
+        REDIS = redis.Redis(host=url.hostname, port=url.port, db=0, password=url.password)
+    else:
+        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        REDIS = redis.Redis(host=redis_host)
 
-    app = default_app()
-    plugin = redis_plugin.RedisPlugin(host=redis_host)
-    app.install(plugin)
+    port = int(os.environ.get("PORT", 5000))
     run(host='0.0.0.0', port=port)

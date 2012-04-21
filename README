@@ -4,7 +4,6 @@ iwantaride
 PYTHON SETUP
 sudo python -m easy_install bottle
 sudo python -m easy_install redis
-sudo python -m easy_install bottle-redis
 
 REDIS SETUP
 # install with

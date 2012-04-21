@@ -47,8 +47,8 @@
               <li><a href="/make/have">Have</a></li>
               <li><a href="/rides">Show</a></li>
               <li><a href="/about">About</a></li>
-	      %if 'email' in session:
-	      <li><a href="/logout">Logout {{ session['email'] }}</a></li>
+	      %if 'name' in session:
+	      <li><a href="/logout">Logout {{ session['name'] }}</a></li>
 	      %else:
 	      <li><a href="/login">Login</a></li>
 	      <li><a href="/signup">Signup</a></li>

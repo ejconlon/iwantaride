@@ -8,12 +8,14 @@ function initialize() {
     alert("LOADED!");
 }
 
+// TODO for some reason document.body.appendChild erases... everything...
+// non-lazy load it for now
 //function loadScript() {
 //  var script = document.createElement("script");
 //  script.type = "text/javascript";
 //  script.src = "http://maps.googleapis.com/maps/api/js?key=AIzaSyBj3Cz1ShYUnODXeZH8IDll6rNq_GTFH6E&sensor=true"
 //  document.body.appendChild(script);
 //}
-
 //window.onload = loadScript;
+
 document.body.onload = initialize;

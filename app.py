@@ -28,21 +28,23 @@ def user_exists(email):
     uid = REDIS.get('email:%s:uid' % email)
     return uid is not None
 
-def find_user(email, pwhash):
+def find_user_and_name(email, pwhash):
     uid = REDIS.get('email:%s:uid' % email)
     if uid:
         stored_hash = REDIS.get('pwhash:%s' % uid)
         if stored_hash == pwhash:
-            return uid
-    return None
+            name = REDIS.get('name:%s' % uid)
+            return uid, name
+    return None, None
 
-def add_user(email, pwhash):
+def add_user(name, email, pwhash):
     if user_exists(email):
         return None
     else:
         uid = REDIS.incr('global:uid_source')
         REDIS.set('email:%s:uid' % email, uid)
         REDIS.set('pwhash:%s' % uid, pwhash)
+        REDIS.set('name:%s' % uid, name)
         return uid
 
 def get_session():
@@ -50,13 +52,13 @@ def get_session():
 
 def clear_session():
     s = get_session()
-    del s['email']
-    del s['uid']
+    s.delete()
     s.save()
     return s
 
-def add_login_to_session(email, uid):
+def add_login_to_session(name, email, uid):
     s = get_session()
+    s['name'] = name
     s['email'] = email
     s['uid'] = uid
     s.save()
@@ -147,12 +149,12 @@ def verify_login():
         update_session(error = "Fill in all the fields, thanks.")
         return redirect("/login")
 
-    uid = find_user(email, pwhash)
+    uid, name = find_user_and_name(email, pwhash)
     if uid is None:
         update_session(error = "We couldn't log you in with those credentials.")
         return redirect("/login")
     else:
-        add_login_to_session(email, uid)
+        add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
         update_session(success = "Thanks for logging in.")
         return redirect("/")
@@ -164,11 +166,12 @@ def signup():
 
 @route("/verify_signup", method="POST")
 def verify_signup():
+    name = request.forms.get('name')
     email = request.forms.get('email')
     password = request.forms.get('password')
     password_again = request.forms.get('password_again')
 
-    if len(email) == 0 or len(password) == 0 or len(password_again) == 0:
+    if len(email) == 0 or len(password) == 0 or len(password_again) == 0 or len(name) == 0:
         update_session(error = "Fill in all the fields, thanks.")
         return redirect("/signup")
     elif password != password_again:
@@ -176,11 +179,11 @@ def verify_signup():
         return redirect("/signup")
     
     pwhash = hash_password(password)
-    uid = add_user(email, pwhash)
+    uid = add_user(name, email, pwhash)
     if uid:
-        add_login_to_session(email, uid)
+        add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
-        update_session(success = "Thanks for signing up.")
+        update_session(success = "Thanks for signing up, "+name)
         return redirect("/")
     else:
         update_session(error = "That email is already registered.")

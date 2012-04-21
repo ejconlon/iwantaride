@@ -39,10 +39,14 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">I Want A Ride!</a>
+          <a class="brand" href="/">I Want A Ride!</a>
           <div class="nav-collapse">
             <ul class="nav">
               <li><a href="/">Home</a></li>
+              <li><a href="/make/want">Want</a></li>
+              <li><a href="/make/have">Have</a></li>
+              <li><a href="/rides">Show</a></li>
+              <li><a href="/about">About</a></li>
 	      %if 'email' in session:
 	      <li><a href="/logout">Logout {{ session['email'] }}</a></li>
 	      %else:

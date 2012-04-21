@@ -25,3 +25,11 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+*~
+*.swo
+*.swp
+*.bak
+*.tmp
+data/
+temp/

@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# If you want to log something, simply print it in the request handler!
+
+# API KEY for iwantaridenet@gmail.com
+GMAPS_API_KEY = "AIzaSyBj3Cz1ShYUnODXeZH8IDll6rNq_GTFH6E"
+GMAPS_SRC="http://maps.googleapis.com/maps/api/js?key=%s&sensor=true" % GMAPS_API_KEY
+# TODO follow along https://developers.google.com/maps/documentation/javascript/tutorial
+
 import os, urlparse
 from bottle import *
 import redis
@@ -19,6 +26,11 @@ def js_static(filename):
 def img_static(filename):
     return static_file(filename, root='./img')
 
+@route('/favicon.ico')
+def favicon_static():
+    return static_file('favicon.ico', root='./img')
+
+
 @route('/css/<filename>')
 def img_static(filename):
     return static_file(filename, root='./css')
@@ -29,7 +41,7 @@ def img_static(filename):
 @route("/")
 @view("main")
 def landing_page():
-    return dict(title = "I Want A Ride!", content = "Where are you headed?")
+    return dict(title = "I Want A Ride!", content = "Where are you headed?", show_map=True)
 
 ###########
 # Dump db info

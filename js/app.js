@@ -8,23 +8,12 @@ function debug(msg) {
     }
 }
 
-function set_lat_lng() {
-    if (google.loader.ClientLocation) {
-	lat = google.loader.ClientLocation.latitude;
-	lon = google.loader.ClientLocation.longitude;
-    } else {
-	debug('Location set manually');
-	lat = '36.9742';
-	lon = '-122.0297';
-    }
-}
-
 function my_map(){
 	var t = this;
 	function set_lat_lng() {
 	    if (google.loader.ClientLocation) {
 		lat = google.loader.ClientLocation.latitude;
-		lng = google.loader.ClientLocation.longitude;
+		lon = google.loader.ClientLocation.longitude;
 	    } else {
 		debug('Location set manually');
 		lat = '36.9742';
@@ -59,7 +48,6 @@ function my_map(){
 	if (this.map){
 		overlayPoint();
 	}
-	
 }
 
 

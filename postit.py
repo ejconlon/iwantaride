@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 
+# ./postit.py http://localhost:5000/db/loadpost users fixtures/users.txt
+
+# alternately, if you are running locally, visit
+# http://localhost:5000/db/loadfixture/users/users.txt
+
+# to drop the db go to
+# http://localhost:5000/db/drop
+
+# to show the db go to
+# http://localhost:5000/db/show
+
 import urllib, urllib2, httplib
 
 def post(url, schema, key, value):

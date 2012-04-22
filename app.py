@@ -537,7 +537,7 @@ def mine_default():
     if 'uid' not in s:
         update_session(cont = "/mine", warning="You gotta log in to see rides.")
         return redirect("/login")
-    return redirect("/mine/"+s['uid'])
+    return redirect("/mine/"+str(s['uid']))
 
 @route("/mine/:uid")
 @view("mine")

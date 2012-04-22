@@ -597,7 +597,7 @@ if __name__ == "__main__":
     app = SessionMiddleware(default_app(), session_opts)
 
     port = int(os.environ.get("PORT", 5000))
-    DEBUG = bool(os.environ.get("DEBUG", False))
+    DEBUG = bool(os.environ.get("DEBUG", DEBUG))
     if DEBUG:
         debug(True)
     run(host='0.0.0.0', port=port, app=app)

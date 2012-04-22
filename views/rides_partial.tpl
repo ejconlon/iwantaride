@@ -1,5 +1,7 @@
 <div id="map_canvas" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
 
+%if len(ride_list):
+
 <table id="ride_list">
        <tr id="ride_list_header">
               <td></td>
@@ -12,3 +14,5 @@
      	  %include ride_partial ride=ride
      %end
 </table>
+
+%end

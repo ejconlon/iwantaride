@@ -83,20 +83,29 @@ def distance(lat1, lon1, lat2, lon2):
     #print lat1, lon1, lat2, lon2, d
     return d
 
-def format_time(t):
+def days_away(t):
     ymd_string = t.split(" ")[0]
     event_time = datetime.strptime(ymd_string, "%Y-%m-%d").date()
     today = date.today()
     print today, event_time
     if today > event_time:
-        return "in the past"
+        return -1
     delta = event_time - today
-    if delta.days == 0:
+    if delta.days < 7:
+        return delta.days
+    else:
+        return 8
+
+def format_time(t):
+    d = days_away(t)
+    if d < 0:
+        return "in the past"
+    if d == 0:
         return "today"
-    elif delta.days == 1:
+    elif d == 1:
         return "tomorrow"
-    elif delta.days < 7:
-        return "%d days from now" % delta.days
+    elif d < 7:
+        return "%d days from now" % d
     else:
         return "in the future"
 
@@ -105,6 +114,7 @@ def format_ride(ride, my_from_lat, my_from_lon):
     ride['start_dist'] = distance(ride['from_lat'], ride['from_lon'], my_from_lat, my_from_lon)
     ride['end_dist'] = distance(ride['to_lat'], ride['to_lon'], my_from_lat, my_from_lon)
     ride['formatted_from_time'] = format_time(ride['from_time'])
+    ride['days_away'] = days_away(ride['from_time'])
     #ride['formatted_to_time'] = format_time(ride['to_time'])
     return ride
 
@@ -188,7 +198,7 @@ def get_all_rides():
 
 def get_ride_list(my_from_lat, my_from_lon):
     ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
-                       key=lambda d: float(d['start_dist']))[:10]
+                       key=lambda d: 1000*float(d['start_dist']))[:10]
     print "Fount n rides", len(ride_list)
     return ride_list
 
@@ -209,10 +219,10 @@ def img_static(filename):
 def favicon_static():
     return static_file('favicon.ico', root='./img')
 
-
 @route('/css/<filename>')
-def img_static(filename):
+def css_static(filename):
     return static_file(filename, root='./css')
+
 
 ###########
 # Main page

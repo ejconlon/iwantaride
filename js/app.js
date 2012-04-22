@@ -222,6 +222,7 @@ $(document).ready(function() {
 	
 	$("#lonfield").val(lon)
 	$("#lonfield").val(lon)
+        $("#datepicker").datepicker({dateFormat: 'yy-mm-dd'})
 	
 	google.maps.event.addDomListener(window, 'load', initialize);
 	

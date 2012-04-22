@@ -13,7 +13,7 @@ DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
-RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
+RESPONSE_KEYS = ['uid2', 'rid', 'confirmation', 'tip', 'comment']
 
 import os, urlparse, sha, math, json
 from datetime import datetime, date, time
@@ -62,7 +62,7 @@ def add_response(response_dict, reid=None):
     if reid is None:
         reid = REDIS.incr('global:reid_source')
     for k in RESPONSE_KEYS:
-        REDIS.set(k+":"+reid, response_dict[k])
+        REDIS.set(k+":"+str(reid), str(response_dict[k]))
     return reid
 
 def get_name_by_uid(uid):
@@ -195,6 +195,24 @@ def get_all_rides():
         rid = exkey.split(':')[-1]
         rides.append(get_ride(rid))
     return rides
+
+def get_response(reid):
+    d = {'reid':reid}
+    for key in RESPONSE_KEYS:
+        d[key] = REDIS.get('%s:%s' % (key, reid))
+    return d
+
+def get_all_responses(rid):
+    responses = []
+    for exkey in REDIS.keys('rid:*'):
+        reid = exkey.split(':')[-1]
+        if REDIS.get(exkey) == rid:
+            responses.append(get_response(reid))
+    return responses
+
+def format_response(response):
+    response['name'] = get_name_by_uid(response['uid2'])
+    return response
 
 def get_ride_list(my_from_lat, my_from_lon):
     def key(d):
@@ -378,11 +396,12 @@ def about():
 @view("take")
 def take(rid):
     if 'uid' not in get_session():
-        update_session(error = "Please login to take a ride.", cont="/take/"+rid)
+        update_session(error = "Please login to take a ride.", cont="/take/"+str(rid))
         return redirect("/login")
     lat, lon = get_lat_lon()
     ride = format_ride(get_ride(rid), lat, lon)
-    return session_dict(ride=ride)
+    responses = map(format_response, get_all_responses(rid))
+    return session_dict(ride=ride, responses=responses)
 
 @route("/verify_take", method="POST")
 def verify_take():
@@ -394,12 +413,17 @@ def verify_take():
         update_session(error = "Couldn't find your ride.")
         return redirect("/rides")
     else:
-        response_dict = {'uid': uid, 'rid': rid, 'confirmation': '',
+        response_dict = {'uid2': uid, 'rid': rid, 'confirmation': '',
                          'tip': tip, 'comment': comment}
         print "Adding response", response_dict
         add_response(response_dict)
-        return render("/take/"+str(rid))
+        return redirect("/take/"+str(rid))
 
+@route("/shake/:reid")
+def shake_on_it(reid):
+    response = get_response(reid)
+    REDIS.set("confirmation:%s" % reid, "true")
+    return redirect("/take/%s" % response['rid'])
 
 ###########
 # Dump db info

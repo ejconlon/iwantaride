@@ -11,8 +11,12 @@
       <input type="hidden" id="ride_id" name="rid" value="{{ ride['rid'] }}"/>
       <p> (Toss 'em a tip?) </p>
       <input type="text" name="tip"/>
+      <p> Comment </p>
+      <input type="text" name="comment"/><br/>
       <input type="submit" value="Take a ride!" />
 </form>
+
+%include responses_partial responses=responses
 
 %include footer
 

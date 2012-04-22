@@ -5,7 +5,6 @@ function getBaseURL () {
 }
 var lat = null;
 var lon = null;
-var map = null;
 function debug(msg) {
     if (DEBUG_ENABLED) {
 	console.log(msg);
@@ -29,8 +28,6 @@ function my_marker(type,route,latLng,image,title){
 
 	this.clear_from_map = function (){
 		t.marker.setMap(null)
-		google.maps.event.removeListener(t.dragstart);
-		google.maps.event.removeListener(t.drag);
 		google.maps.event.removeListener(t.dragend);
 		delete t.marker;
 	
@@ -38,18 +35,8 @@ function my_marker(type,route,latLng,image,title){
 	
   
 
+;
 
-	this.dragstart = google.maps.event.addListener(this.marker, 'dragstart', function() {
-	    debug(t.marker.getPosition());
-	
-		
-	   
-	  });
-
-	  this.drag = google.maps.event.addListener(this.marker, 'drag', function() {
-	    debug('Dragging...');
-	    debug(t.marker.getPosition());
-	  });
 
 	  this.dragend = google.maps.event.addListener(this.marker, 'dragend', function(a) {
 	    debug('Drag ended');
@@ -68,9 +55,12 @@ function my_marker(type,route,latLng,image,title){
 
 }
 //
-function my_route_display(map){
+function my_route_display(my_map,route){
 	var t = this;
-	t.map = map;
+	 t.loaded_routes =[];
+	 t.loaded_route_ids = {};
+	t.map = my_map.map;
+	t.my_route = route;
 	var _construct = function (){
 		
 		if ($("#ride_id").val()){
@@ -84,40 +74,69 @@ function my_route_display(map){
 		  url: getBaseURL() + url,
 		  context: t,
 		}).done(function(a) { 
-		  	var b = new my_route(t.map);
-			b.processRoute([0,a]);	
+		  	t.processRoute([0,a]);	
 			
 		});
 		
 	}
+	
+	 t.processRoute = function(argumentArray){
+		
+		var key = argumentArray[0];
+		var results = argumentArray[1];
+		var newKey = key + 1; 
+		if (results[key]){
+			t.loaded_routes.push(results[key]);
+			t.loaded_route_ids[results[key]['uid']] = key;
+			
+			
+			currentResult = results[key];
+			var lat =  (currentResult['from_lat']);
+			var lon = (currentResult['from_lon']);
+			var starLatLng = new google.maps.LatLng(lat, lon);
+			var lat = currentResult['to_lat'];
+			var lon = currentResult['to_lon'];
+			var endLatLng = new google.maps.LatLng(lat, lon);
+			var cb_arguments = [newKey,  results]
+			var return_id;
+			if (results[key]['uid']){
+				
+				return_id = results[key]['uid']
+			}else{
+				return_id = false
+			}
+				 t.my_route.calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments,return_id);
+			}
+		
+	}
+	
 	_construct();
 	// http://localhost:5000/rides.json
 	
 }
 
 
-function my_route(map){
+function my_route(my_map,isEditable){
 	var t = this;
+	 t.isEditable =isEditable;
+	t.map = my_map.map;
 	
 	_construct = function (){
 		t.CURRENT_APP_STATE = 'start';
-		set_lat_lng();
-		t.map = map;
 		t.start_marker = false;
 		t.end_marker = false;
 		t.directionsService = new google.maps.DirectionsService();
 		if (t.map){
-			//overlayPoint();
-			google.maps.event.addListener(t.map, 'dblclick', double_clicked);
-			
+			if (t.isEditable){
+				google.maps.event.addListener(t.map, 'dblclick', double_clicked);
+			}
 			var myLatLng = new google.maps.LatLng(lat, lon);
 			
-				init_cb();
-
+				
 		}
 
 	}
-	
+
 	this.load = function (){
 		var from = false;
 		var to = false;
@@ -148,13 +167,13 @@ function my_route(map){
 		}
 		if (newEnd){
 			if (t.end_marker){
-				t.end_marker.clear_from_map();
+			t.end_marker.clear_from_map();
 			}
 			t.end_marker = new my_marker("END",t, newEnd, getBaseURL()+'img/flag.png','endPoint');
 		}
 		
 		if ((t.start_marker) && (t.end_marker)){
-			calcRoute(t.start_marker.marker.position,t.end_marker.marker.position);
+			t.calcRoute(t.start_marker.marker.position,t.end_marker.marker.position);
 		}
 		
 		if (t.start_marker){
@@ -201,10 +220,9 @@ function my_route(map){
 	}
 	
 	
-	function renderDirections(result) {
-		$("#"+t.map.b.id).trigger('route_processed',result);
+	function renderDirections(result,id) {
+		$("#"+t.map.b.id).trigger('route_processed', [result,id]);
 		
-	      //t.directionsRenderer.setDirections(result);
 	   }
 	
 	function returnDirectionOverlay(){
@@ -212,7 +230,7 @@ function my_route(map){
 	}
 	
 
-	function calcRoute(start,end,calc_cb,cb_args) {
+	 t.calcRoute = function (start,end,calc_cb,cb_args,id) {
     	var request = {
         origin:start, 
         destination:end,
@@ -223,7 +241,7 @@ function my_route(map){
 		debug("callback called");
 		debug(status)	;
       if (status == google.maps.DirectionsStatus.OK) {
-		renderDirections(response);
+		renderDirections(response,id);
       }
 		if (typeof(calc_cb)=="function"){
 				calc_cb(cb_args);
@@ -232,45 +250,9 @@ function my_route(map){
 
     });
   }
-	 t.processRoute = function(argumentArray){
-		
-		var key = argumentArray[0];
-		var results = argumentArray[1];
-		var newKey = key + 1; 
-		if (results[key]){
-			currentResult = results[key];
-			var lat =  (currentResult['from_lat']);
-			var lon = (currentResult['from_lon']);
-			var starLatLng = new google.maps.LatLng(lat, lon);
-			var lat = currentResult['to_lat'];
-			var lon = currentResult['to_lon'];
-			var endLatLng = new google.maps.LatLng(lat, lon);
-			var cb_arguments = [newKey,  results]
-			calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments);
-			}
-		
-	}
+
 	
-	function init_cb() {
-		var results ={
-			'routes': [
-				{
-					'start_point' : {'lat' : Number(lat)+ Number(.1) , 'lon' : Number(lon) + Number(.01)},
-					'end_point' : {'lat' : Number(lat) -.01, 'lon' : Number(lon) } 
-					
-				},
-				{
-					'start_point' : {'lat' : Number(lat)+ .1 , 'lon' : Number(lon) + .1},
-					'end_point' : {'lat' : Number(lat) -.1, 'lon' : Number(lon) + 1 } 
-					
-				}
-			]
-			
-		}
-	//processRoute([0,results['routes']]);	
-		
-		
-	}
+
 
 	function overlayPoint(){
 		var image = 'img/beachflag.png';
@@ -286,77 +268,202 @@ function my_route(map){
 }
 var instance;
 
-function set_lat_lng() {
-    if (google.loader.ClientLocation) {
-	lat = google.loader.ClientLocation.latitude;
-	lon = google.loader.ClientLocation.longitude;
-    } else {
-	debug('Location set manually');
-	lat = '36.9742';
-	lon = '-122.0297';
-    }
-}
 
-function map_shower_reader_handler(event,directionOverlay){
-	
-	var directionsRenderer = new google.maps.DirectionsRenderer;
-		directionsRenderer.setMap(map)
-		directionsRenderer.setDirections(directionOverlay);
-		console.log(event);
-		
-}
+
+
 var globalDirectionRender;
-function map_picker_handler(event,directionOverlay){
-	
-	 	globalDirectionRender.setDirections(directionOverlay);
-	
-		
-}
 
 
-function draw_map(){
-	var myOptions = {
-		zoom: 12,
-    	disableDoubleClickZoom : true,
-		center: new google.maps.LatLng(lat, lon),
-    	mapTypeId: google.maps.MapTypeId.ROADMAP
-  	}
-	if ($('#map_picker').length != 0) {
-		$('#map_picker').bind("route_processed",map_picker_handler);
-		globalDirectionRender = new google.maps.DirectionsRenderer;
-		map = new google.maps.Map(document.getElementById("map_picker"), myOptions);
-		globalDirectionRender.setMap(map);
+
+
+function my_map(id){
+	var t = this;
+	draw_map(id);
+	function draw_map(id){
+		var myOptions = {
+			zoom: 12,
+    		disableDoubleClickZoom : true,
+			center: new google.maps.LatLng(lat, lon),
+    		mapTypeId: google.maps.MapTypeId.ROADMAP
+  		}
+		if ($("#"+id).length != 0) {
+			t.map = new google.maps.Map(document.getElementById(id), myOptions);
+
 		
-		return map;
-		
-		
-	}else if ($('#map_shower').length != 0){
-		$('#map_shower').bind("route_processed",map_shower_reader_handler);
-		return new google.maps.Map(document.getElementById("map_shower"), myOptions);
+
 	}else {
 	return false;
 }
 }
 
+
+  t.dragend = google.maps.event.addListener(this.map, 'bounds_changed', function() {
+    $("#"+t.map.b.id).trigger('bounds_changed',t.map);
+	
+  });
+ 
+	
+}
+
+
+	
+
+function app(){
+	
+	var t = this;
+	t.map_shower = false;
+	t.map_picker = false;
+	t.globalDirectionRender = false;	
+	t.current_data = false;
+	var map_shower_reader_handler = function (event,directionOverlay,new_id){
+		
+		
+		
+		var id = new_id;
+		var currentData = t.display_port_shower.loaded_routes;
+		currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
+		if ((currentData) &&(currentData["wantorhave"]=="have")){
+			var stroke = "#40e0d0";
+		}else{
+			var stroke = "#FF9966";
+			
+			
+		}
+		// var image = getBaseURL()+'img/car_icon.jpg';
+		// 	var marker = new google.maps.Marker({
+		// 				    position: directionOverlay.routes[0].legs[0].start_location,
+		// 				    title: "Start",
+		// 				    map: t.map_shower.map,
+		// 			icon : image,
+		// 				  });
+		// 			
+		// 				 image = getBaseURL()+'img/flag.png';
+		// 				 marker = new google.maps.Marker({
+		// 							    position: directionOverlay.routes[0].legs[0].end_location,
+		// 							    title: "end",
+		// 							    map: t.map_shower.map,
+		// 						icon : image,
+		// 							  });
+	
+		
+		var directionsRenderer = new google.maps.DirectionsRenderer({suppressMarkers : false , polylineOptions : {strokeColor:stroke, opacity:1}});
+			directionsRenderer.setMap(t.map_shower.map);
+			directionsRenderer.setDirections(directionOverlay);
+			var id = new_id;
+			var currentData = t.display_port_shower.loaded_routes;
+			currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
+			
+			
+		
+		 google.maps.event.addListener(directionsRenderer.polylineOptions, 'click', function(a,b) {
+				$("#"+t.map_shower.map.b.id).trigger('route_selected',id);
+				var id = new_id;
+				var currentData = t.display_port_shower.loaded_routes;
+				currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
+				
+
+
+			});
+
+
+	}
+	
+	var selectRouteFromGetId = function (id){
+			if (id){
+				var url = "rides.json/"+id;
+				$.ajax({
+					dataType: 'json',
+					url: getBaseURL() + url
+					}).done(function(a) { 
+					  	//t.display_port_shower.processRoute([0,a]);	
+						t.display_port_picker.processRoute([0,a]);
+					});
+			
+			}
+
+		
+	}
+	var _construct = function (){
+		
+		set_lat_lng();
+		if ($('#map_picker').length != 0){
+			t.map_picker = new my_map('map_picker');
+			$('#map_picker').bind("route_processed",t.map_picker_handler);
+			$('#map_picker').bind("bounds_changed",function(Event,map){
+				if (t.map_shower){
+					t.map_shower.map.setCenter(map.center);
+					t.map_shower.map.setZoom(map.getZoom())
+				}	
+				});
+				
+			t.globalDirectionRender = new google.maps.DirectionsRenderer;
+			t.globalDirectionRender.setMap(t.map_picker.map);
+
+			 route = new my_route(t.map_picker,true);
+		}
+		if ($('#map_shower').length != 0){
+			 t.map_shower = new my_map('map_shower');
+			$('#map_shower').bind("route_processed", map_shower_reader_handler);
+			$('#map_shower').bind('route_selected', function (Event,id){
+
+				if (t.map_picker){
+								
+					//$('#map_shower').one("route_processed",map_picker_handler);
+						
+						
+					selectRouteFromGetId(id);
+				}
+			})
+
+			$('#map_shower').bind("bounds_changed",function(Event,map){
+				if (t.map_picker){
+					t.map_picker.map.setCenter(map.center);
+					t.map_picker.map.setZoom(map.getZoom())
+				}	
+			});
+
+			 route = new my_route(t.map_shower,false);
+				t.display_port_shower = new my_route_display(t.map_shower,route);
+		  t.display_port_picker  = new my_route_display(t.map_shower,route);
+		}
+		
+		
+	}
+	
+	 t.map_picker_handler = function (event,directionOverlay){
+		console.log(directionOverlay);
+		t.globalDirectionRender.setDirections(directionOverlay);
+	}
+	
+	
+	var  set_lat_lng = function() {
+	    if (google.loader.ClientLocation) {
+		lat = google.loader.ClientLocation.latitude;
+		lon = google.loader.ClientLocation.longitude;
+	    } else {
+		debug('Location set manually');
+		lat = '36.9742';
+		lon = '-122.0297';
+	    }
+	}
+	_construct();
+	
+	
+}
+
 function initialize(){
-	set_lat_lng();
-	 if ($('#map_picker').length != 0){
-		 map = draw_map('#map_picker');
-		route = new my_route(map);
-	}
-	if ($('#map_shower').length != 0){
-		 map = draw_map('#map_shower');
-		route = new my_route_display(map);
-	}
-	instance = route; 
+	instance = new app();
+	
+
+	//instance = route; 
 }
 
 
 
 $(document).ready(function() {
 	
-	$("#lonfield").val(lon)
-	$("#lonfield").val(lon)
+		$("#lonfield").val(lon)
+		$("#lonfield").val(lon)
         $("#datepicker").datepicker({dateFormat: 'yy-mm-dd'})
 	
 	google.maps.event.addDomListener(window, 'load', initialize);

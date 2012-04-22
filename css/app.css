@@ -23,7 +23,7 @@ h1 {
 #ride_list tr, #responses tr {
     border-top: 1px solid;
 }
-
+ 
 #ride_list_header, #responses_header {
     font-weight: bold;
     font-size: 14pt;

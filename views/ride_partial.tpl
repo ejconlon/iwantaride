@@ -1,4 +1,4 @@
-<tr class="ride ride_{{ride['wantorhave']}}">
+<tr id="ride_{{ride['rid']}}" class="ride ride_{{ride['wantorhave']}}">
     <td>
 	%if ride['wantorhave'] == 'have':
 	OFFERING

@@ -8,8 +8,9 @@
     <meta name="author" content="">
 
     <!-- Le styles -->
-    <link href="/css/bootstrap.css" rel="stylesheet">
-    <link href="/css/app.css" rel="stylesheet">
+    <link href="/css/bootstrap.css" rel="stylesheet"/>
+    <link href="/css/ui-darkness/jquery-ui-1.8.19.custom.css" rel="stylesheet"/>
+    <link href="/css/app.css" rel="stylesheet"/>
     <style>
       body {
         padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */

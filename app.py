@@ -15,7 +15,8 @@ DEFAULT_LON = '-122.0297';
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
 
-import os, urlparse, sha
+import os, urlparse, sha, math
+from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
 import redis
@@ -64,6 +65,58 @@ def add_response(response_dict, reid=None):
         REDIS.set(k+":"+reid, response_dict[k])
     return reid
 
+def get_name_by_uid(uid):
+    return REDIS.get('name:%s' % uid)
+
+def rad(x):
+    return 0.0174532925*float(x)
+
+def distance(lat1, lon1, lat2, lon2):
+    lat1 = rad(lat1)
+    lon1 = rad(lon1)
+    lat2 = rad(lat2)
+    lon2 = rad(lon2)
+    R = 3963.1676 # in miles
+    x = (lon2-lon1) * math.cos((lat1+lat2)/2);
+    y = (lat2-lat1);
+    d = math.sqrt(x*x + y*y) * R;
+    #print lat1, lon1, lat2, lon2, d
+    return d
+
+def days_away(t):
+    ymd_string = t.split(" ")[0]
+    event_time = datetime.strptime(ymd_string, "%Y-%m-%d").date()
+    today = date.today()
+    print today, event_time
+    if today > event_time:
+        return -1
+    delta = event_time - today
+    if delta.days < 7:
+        return delta.days
+    else:
+        return 8
+
+def format_time(t):
+    d = days_away(t)
+    if d < 0:
+        return "in the past"
+    if d == 0:
+        return "today"
+    elif d == 1:
+        return "tomorrow"
+    elif d < 7:
+        return "%d days from now" % d
+    else:
+        return "in the future"
+
+def format_ride(ride, my_from_lat, my_from_lon):
+    ride['name'] = get_name_by_uid(ride['uid'])
+    ride['start_dist'] = distance(ride['from_lat'], ride['from_lon'], my_from_lat, my_from_lon)
+    ride['end_dist'] = distance(ride['to_lat'], ride['to_lon'], my_from_lat, my_from_lon)
+    ride['formatted_from_time'] = format_time(ride['from_time'])
+    ride['days_away'] = days_away(ride['from_time'])
+    #ride['formatted_to_time'] = format_time(ride['to_time'])
+    return ride
 
 def get_session():
     return request.environ.get('beaker.session')
@@ -113,6 +166,16 @@ def session_dict(**kwargs):
     d.update(kwargs)
     return d
 
+def continue_or_redirect(dest):
+    s = get_session()
+    if 'cont' in s:
+        c = s['cont']
+        del s['cont']
+        s.save()
+        return redirect(c)
+    else:
+        return redirect(dest)
+
 def get_lat_lon():
     s = get_session()
     if 'lat' in s and 'lon' in s:
@@ -120,8 +183,25 @@ def get_lat_lon():
     else:
         return DEFAULT_LAT, DEFAULT_LON
 
-def get_ride_list(lat, lon):
-    return ["ride 1", "ride 2"]
+def get_ride(rid):
+    d = {'rid':rid}
+    for key in RIDE_KEYS:
+        d[key] = REDIS.get('%s:%s' % (key, rid))
+    return d
+
+def get_all_rides():
+    rides = []
+    for exkey in REDIS.keys('from_lon:*'):
+        rid = exkey.split(':')[-1]
+        rides.append(get_ride(rid))
+    return rides
+
+def get_ride_list(my_from_lat, my_from_lon):
+    ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
+                       key=lambda d: 1000*float(d['start_dist']))[:10]
+    print "Fount n rides", len(ride_list)
+    return ride_list
+
 
 ############
 # Static resource handlers
@@ -139,10 +219,10 @@ def img_static(filename):
 def favicon_static():
     return static_file('favicon.ico', root='./img')
 
-
 @route('/css/<filename>')
-def img_static(filename):
+def css_static(filename):
     return static_file(filename, root='./css')
+
 
 ###########
 # Main page
@@ -150,7 +230,9 @@ def img_static(filename):
 @route("/")
 @view("flow")
 def landing_page():
-    return session_dict()
+    lat, lon = get_lat_lon()
+    ride_list = get_ride_list(lat, lon)
+    return session_dict(ride_list=ride_list)
 
 @route("/login")
 @view("login")
@@ -175,7 +257,7 @@ def verify_login():
         add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
         update_session(success = "Thanks for logging in.")
-        return redirect("/")
+        return continue_or_redirect("/")
 
 @route("/signup")
 @view("signup")
@@ -202,7 +284,7 @@ def verify_signup():
         add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
         update_session(success = "Thanks for signing up, "+name)
-        return redirect("/")
+        return continue_or_redirect("/")
     else:
         update_session(error = "That email is already registered.")
         return redirect("/signup")
@@ -233,6 +315,16 @@ def rides():
 @view("about")
 def about():
     return session_dict()
+
+@route("/take/:rid")
+@view("take")
+def take(rid):
+    if 'uid' not in get_session():
+        update_session(error = "Please login to take a ride.", cont="/take/"+rid)
+        return redirect("/login")
+    lat, lon = get_lat_lon()
+    ride = format_ride(get_ride(rid), lat, lon)
+    return session_dict(ride=ride)
 
 ###########
 # Dump db info

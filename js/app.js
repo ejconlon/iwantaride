@@ -5,7 +5,7 @@ function getBaseURL () {
 }
 var lat = null;
 var lon = null;
-
+var map = null;
 function debug(msg) {
     if (DEBUG_ENABLED) {
 	console.log(msg);
@@ -63,10 +63,37 @@ function my_marker(type,route,latLng,image,title){
 		}
 	    debug(a);
 	  });
+	
 
 
 }
 //
+function my_route_display(map){
+	var t = this;
+	t.map = map;
+	var _construct = function (){
+		
+		if ($("#ride_id").val()){
+			var url = "rides.json/"+$("#ride_id").val();
+		}else{
+			var url = "rides.json";
+		}
+		
+		$.ajax({
+			dataType: 'json',
+		  url: getBaseURL() + url,
+		  context: t,
+		}).done(function(a) { 
+		  	var b = new my_route(t.map);
+			b.processRoute([0,a]);	
+			
+		});
+		
+	}
+	_construct();
+	// http://localhost:5000/rides.json
+	
+}
 
 
 function my_route(map){
@@ -88,9 +115,7 @@ function my_route(map){
 				init_cb();
 
 		}
-	
-		t.directionsRenderer = new google.maps.DirectionsRenderer;
-		
+
 	}
 	
 	this.load = function (){
@@ -177,10 +202,16 @@ function my_route(map){
 	
 	
 	function renderDirections(result) {
-	      t.directionsRenderer.setMap(t.map);
-	      t.directionsRenderer.setDirections(result);
+		$("#"+t.map.b.id).trigger('route_processed',result);
+		
+	      //t.directionsRenderer.setDirections(result);
 	   }
 	
+	function returnDirectionOverlay(){
+		
+	}
+	
+
 	function calcRoute(start,end,calc_cb,cb_args) {
     	var request = {
         origin:start, 
@@ -192,8 +223,7 @@ function my_route(map){
 		debug("callback called");
 		debug(status)	;
       if (status == google.maps.DirectionsStatus.OK) {
-		
-        renderDirections(response);
+		renderDirections(response);
       }
 		if (typeof(calc_cb)=="function"){
 				calc_cb(cb_args);
@@ -202,21 +232,21 @@ function my_route(map){
 
     });
   }
-	function processRoute(argumentArray){
+	 t.processRoute = function(argumentArray){
 		
 		var key = argumentArray[0];
 		var results = argumentArray[1];
 		var newKey = key + 1; 
 		if (results[key]){
 			currentResult = results[key];
-			var lat =  (currentResult['start_point']['lat']);
-			var lon = (currentResult['start_point']['lon']);
+			var lat =  (currentResult['from_lat']);
+			var lon = (currentResult['from_lon']);
 			var starLatLng = new google.maps.LatLng(lat, lon);
-			var lat = currentResult['end_point']['lat'];
-			var lon = currentResult['end_point']['lon'];
+			var lat = currentResult['to_lat'];
+			var lon = currentResult['to_lon'];
 			var endLatLng = new google.maps.LatLng(lat, lon);
 			var cb_arguments = [newKey,  results]
-			calcRoute(starLatLng,endLatLng, processRoute,cb_arguments);
+			calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments);
 			}
 		
 	}
@@ -267,26 +297,61 @@ function set_lat_lng() {
     }
 }
 
-function draw_map(){
-	 if ($('#map_picker').length != 0) {
-	var myOptions = {
-    zoom: 12,
-    disableDoubleClickZoom : true,
-	center: new google.maps.LatLng(lat, lon),
-    mapTypeId: google.maps.MapTypeId.ROADMAP
-  }
+function map_shower_reader_handler(event,directionOverlay){
+	
+	var directionsRenderer = new google.maps.DirectionsRenderer;
+		directionsRenderer.setMap(map)
+		directionsRenderer.setDirections(directionOverlay);
+		console.log(event);
+		
+}
+var globalDirectionRender;
+function map_picker_handler(event,directionOverlay){
+	
+	 	globalDirectionRender.setDirections(directionOverlay);
+	
+		
+}
 
-  return new google.maps.Map(document.getElementById("map_picker"), myOptions);
-}else{
+
+function draw_map(){
+	var myOptions = {
+		zoom: 12,
+    	disableDoubleClickZoom : true,
+		center: new google.maps.LatLng(lat, lon),
+    	mapTypeId: google.maps.MapTypeId.ROADMAP
+  	}
+	if ($('#map_picker').length != 0) {
+		$('#map_picker').bind("route_processed",map_picker_handler);
+		globalDirectionRender = new google.maps.DirectionsRenderer;
+		map = new google.maps.Map(document.getElementById("map_picker"), myOptions);
+		globalDirectionRender.setMap(map);
+		
+		return map;
+		
+		
+	}else if ($('#map_shower').length != 0){
+		$('#map_shower').bind("route_processed",map_shower_reader_handler);
+		return new google.maps.Map(document.getElementById("map_shower"), myOptions);
+	}else {
 	return false;
 }
 }
+
 function initialize(){
 	set_lat_lng();
-	var map = draw_map();
-	route = new my_route(map);
+	 if ($('#map_picker').length != 0){
+		 map = draw_map('#map_picker');
+		route = new my_route(map);
+	}
+	if ($('#map_shower').length != 0){
+		 map = draw_map('#map_shower');
+		route = new my_route_display(map);
+	}
 	instance = route; 
 }
+
+
 
 $(document).ready(function() {
 	

@@ -42,7 +42,7 @@
 <a href="https://github.com/ejconlon">Eric Conlon</a>,
 Fan Zhu,
 Nick Stock,
-and Paul Alexander.
+and <a href="https://github.com/palexander">Paul Alexander</a>.
 </p>
 
 <p> Logo by Albert de Guzman. </p>

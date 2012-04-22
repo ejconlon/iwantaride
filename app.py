@@ -87,7 +87,7 @@ def days_away(t):
     ymd_string = t.split(" ")[0]
     event_time = datetime.strptime(ymd_string, "%Y-%m-%d").date()
     today = date.today()
-    print today, event_time
+    #print today, event_time
     if today > event_time:
         return -1
     delta = event_time - today
@@ -325,6 +325,21 @@ def take(rid):
     lat, lon = get_lat_lon()
     ride = format_ride(get_ride(rid), lat, lon)
     return session_dict(ride=ride)
+
+@route("/verify_take", method="POST")
+def verify_take():
+    uid = request.forms.get('uid')
+    rid = request.forms.get('rid')
+    tip = request.forms.get('tip')
+    comment = request.forms.get('comment')
+    if uid is None or rid is None or len(uid) == 0 or len(rid) == 0:
+        update_session(error = "Couldn't find your ride.")
+        return redirect("/rides")
+    else:
+        response_dict = {'uid': uid, 'rid': rid, 'confirmation': '',
+                         'tip': tip, 'comment': comment}
+        add_response(response_dict)
+
 
 ###########
 # Dump db info

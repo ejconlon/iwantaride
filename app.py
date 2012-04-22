@@ -16,6 +16,7 @@ RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to
 RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
 
 import os, urlparse, sha, math
+from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
 import redis
@@ -79,19 +80,32 @@ def distance(lat1, lon1, lat2, lon2):
     x = (lon2-lon1) * math.cos((lat1+lat2)/2);
     y = (lat2-lat1);
     d = math.sqrt(x*x + y*y) * R;
-    print lat1, lon1, lat2, lon2, d
+    #print lat1, lon1, lat2, lon2, d
     return d
 
 def format_time(t):
-    # TODO make friendly
-    return t
+    ymd_string = t.split(" ")[0]
+    event_time = datetime.strptime(ymd_string, "%Y-%m-%d").date()
+    today = date.today()
+    print today, event_time
+    if today > event_time:
+        return "in the past"
+    delta = event_time - today
+    if delta.days == 0:
+        return "today"
+    elif delta.days == 1:
+        return "tomorrow"
+    elif delta.days < 7:
+        return "%d days from now" % delta.days
+    else:
+        return "in the future"
 
 def format_ride(ride, my_from_lat, my_from_lon):
     ride['name'] = get_name_by_uid(ride['uid'])
     ride['start_dist'] = distance(ride['from_lat'], ride['from_lon'], my_from_lat, my_from_lon)
     ride['end_dist'] = distance(ride['to_lat'], ride['to_lon'], my_from_lat, my_from_lon)
     ride['formatted_from_time'] = format_time(ride['from_time'])
-    ride['formatted_to_time'] = format_time(ride['to_time'])
+    #ride['formatted_to_time'] = format_time(ride['to_time'])
     return ride
 
 def get_session():
@@ -141,6 +155,16 @@ def session_dict(**kwargs):
     d = { "session" : s }
     d.update(kwargs)
     return d
+
+def continue_or_redirect(dest):
+    s = get_session()
+    if 'cont' in s:
+        c = s['cont']
+        del s['cont']
+        s.save()
+        return redirect(c)
+    else:
+        return redirect(dest)
 
 def get_lat_lon():
     s = get_session()
@@ -223,7 +247,7 @@ def verify_login():
         add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
         update_session(success = "Thanks for logging in.")
-        return redirect("/")
+        return continue_or_redirect("/")
 
 @route("/signup")
 @view("signup")
@@ -250,7 +274,7 @@ def verify_signup():
         add_login_to_session(name, email, uid)
         add_lat_lon_to_session()
         update_session(success = "Thanks for signing up, "+name)
-        return redirect("/")
+        return continue_or_redirect("/")
     else:
         update_session(error = "That email is already registered.")
         return redirect("/signup")
@@ -286,7 +310,7 @@ def about():
 @view("take")
 def take(rid):
     if 'uid' not in get_session():
-        update_session(error = "Please login to take a ride.")
+        update_session(error = "Please login to take a ride.", cont="/take/"+rid)
         return redirect("/login")
     lat, lon = get_lat_lon()
     ride = format_ride(get_ride(rid), lat, lon)

@@ -5,9 +5,7 @@
               <td></td>
               <td>Who</td>
 	      <td>From</td>
-	      <td>To</td>
-	      <td>Between</td>
-	      <td>and</td>
+	      <td>When</td>
 	      <td></td>
        </tr>
      %for ride in ride_list:

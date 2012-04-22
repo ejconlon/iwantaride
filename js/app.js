@@ -65,7 +65,11 @@ function my_route_display(my_map,route){
 		
 		if ($("#ride_id").val()){
 			var url = "rides.json/"+$("#ride_id").val();
-		}else{
+		}else if($("#my_id").val()){
+			var url = "myrides.json/"+ $("#my_id").val();
+			
+		}
+		else{
 			var url = "rides.json";
 		}
 		

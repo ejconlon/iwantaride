@@ -8,12 +8,11 @@
 
 <form name="input" action="/verify_take" method="POST">
       <input type="hidden" name="uid" value="{{ session['uid'] }}"/>
-      <input type="hidden" name="rid" value="{{ ride['rid'] }}"/>
+      <input type="hidden" id="ride_id" name="rid" value="{{ ride['rid'] }}"/>
       <p> (Toss 'em a tip?) </p>
       <input type="text" name="tip"/>
       <input type="submit" value="Take a ride!" />
 </form>
-
 
 %include footer
 

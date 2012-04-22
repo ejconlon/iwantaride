@@ -362,6 +362,13 @@ def rides_json():
     lat, lon = get_lat_lon()
     return get_ride_list(lat, lon)    
 
+@route("/rides.json/:rid")
+@json_result
+def rides_json(rid):
+    lat, lon = get_lat_lon()
+    ride = get_ride(rid)
+    return format_ride(ride, lat, lon)
+
 @route("/about")
 @view("about")
 def about():

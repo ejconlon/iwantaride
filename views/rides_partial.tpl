@@ -1,4 +1,4 @@
-<div id="map_shower" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
+<div id="map_shower"></div>
 
 %if len(ride_list):
 
@@ -6,7 +6,7 @@
        <tr id="ride_list_header">
               <td></td>
               <td>Who</td>
-	      <td>From</td>
+	      <td>Where</td>
 	      <td>When</td>
 	      <td></td>
        </tr>

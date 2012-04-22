@@ -1,5 +1,58 @@
-h1, #map_picker, #map_shower {
+.container {
+    padding-left: 40px 40px;
+}
+
+body {
+    margin-bottom: 30px;
+}
+
+h1 {
     margin-bottom: 20px;
+}
+
+.about {
+    font-size: 12pt;
+}
+
+#ride_list, #responses {
+    width: 100%;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+#ride_list tr, #responses tr {
+    border-top: 1px solid;
+}
+
+#ride_list_header, #responses_header {
+    font-weight: bold;
+    font-size: 14pt;
+    border-top: none;
+}
+
+#ride_list td, #responses td {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+.ride_want {
+    background-color: #F0F8FF;
+}
+
+.ride_have {
+    background-color: #F5F5DC;
+}
+
+#map_picker, #map_shower {
+    display:block;
+    align: center
+    width: 90%;
+    min-height: 300px;
+    background-color: #FEEFB3;
+    margin-bottom:30px;
 }
 
 td {
@@ -7,47 +60,37 @@ td {
 }
 
 .info, .success, .warning, .error, .validation, .flowbutton {
-border: 1px solid;
-margin: 10px 0px;
-padding:15px 10px 15px 50px;
-background-repeat: no-repeat;
-background-position: 10px center;
+    border: 1px solid;
+    margin: 10px 0px;
+    padding:15px 10px 15px 50px;
+    background-repeat: no-repeat;
+    background-position: 10px center;
 }
 .info {
-color: #00529B;
-background-color: #BDE5F8;
-/*background-image: url('/img/info.png');*/
+    color: #00529B;
+    background-color: #BDE5F8;
+    /*background-image: url('/img/info.png');*/
 }
 .success {
-color: #4F8A10;
-background-color: #DFF2BF;
-/*background-image: url('/img/success.png');*/
+    color: #4F8A10;
+    background-color: #DFF2BF;
+    /*background-image: url('/img/success.png');*/
 }
 .warning {
-color: #9F6000;
-background-color: #FEEFB3;
-/*background-image: url('/img/warning.png');*/
+    color: #9F6000;
+    background-color: #FEEFB3;
+    /*background-image: url('/img/warning.png');*/
 }
 .error {
-color: #D8000C;
-background-color: #FFBABA;
-/*background-image: url('/img/error.png');*/
+    color: #D8000C;
+    background-color: #FFBABA;
+    /*background-image: url('/img/error.png');*/
 }
 
 .flowbutton {
-font-weight:bold;
-font-size:14pt;    
+    font-weight:bold;
+    font-size:14pt;    
+    background-color: #F5F5F5;
+    align:center;
 }
 
-#wantaride {
-
-/*background-color: #BDE5F8;*/
-}
-
-#havearide {
-
-}
-
-#whosriding {
-
-}

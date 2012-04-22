@@ -2,10 +2,10 @@
 
 # If you want to log something, simply print it in the request handler!
 
-# API KEY for iwantaridenet@gmail.com
-GMAPS_API_KEY = "AIzaSyBj3Cz1ShYUnODXeZH8IDll6rNq_GTFH6E"
-GMAPS_SRC="http://maps.googleapis.com/maps/api/js?key=%s&sensor=true" % GMAPS_API_KEY
-# TODO follow along https://developers.google.com/maps/documentation/javascript/tutorial
+# these two are set in main block
+REDIS = None
+DEBUG = False
+MAX_RIDES = 15
 
 SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 
@@ -13,7 +13,7 @@ DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
-RESPONSE_KEYS = ['uid2', 'rid', 'confirmation', 'tip', 'comment']
+RESPONSE_KEYS = ['uid2', 'rid2', 'confirmation', 'tip', 'comment']
 
 import os, urlparse, sha, math, json, urllib
 from datetime import datetime, date, time
@@ -21,8 +21,27 @@ from bottle import *
 from beaker.middleware import SessionMiddleware
 import redis
 
-# set in main block
-REDIS = None
+###########
+# Bottle handler decorators
+
+# one to protect debug functions
+def debug_only(f):
+    def g(*a, **k):
+        if not DEBUG:
+            return abort(401, "Unauthorized")
+        else:
+            return f(*a, **k)
+    return g
+
+# and one to let you return json
+def json_result(f):
+    def g(*a, **k):
+        return json.dumps(f(*a, **k))
+    return g
+
+
+##########
+# Data model junk
 
 def hash_password(s):
     return sha.sha(s+SALT).hexdigest()
@@ -202,12 +221,19 @@ def get_response(reid):
         d[key] = REDIS.get('%s:%s' % (key, reid))
     return d
 
-def get_all_responses(rid):
+def get_all_responses_for(rid):
     responses = []
-    for exkey in REDIS.keys('rid:*'):
+    for exkey in REDIS.keys('rid2:*'):
         reid = exkey.split(':')[-1]
         if REDIS.get(exkey) == rid:
             responses.append(get_response(reid))
+    return responses
+
+def get_all_responses():
+    responses = []
+    for exkey in REDIS.keys('from_lon:*'):
+        rid = exkey.split(':')[-1]
+        responses.extend(get_all_responses_for(rid))
     return responses
 
 def format_response(response):
@@ -221,7 +247,7 @@ def get_ride_list(my_from_lat, my_from_lon):
             da = 8
         return 1000*da + float(d['start_dist'])
     ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
-                       key=key)[:10]
+                       key=key)
     print "Fount n rides", len(ride_list)
     return ride_list
 
@@ -248,13 +274,13 @@ def css_static(filename):
 
 
 ###########
-# Main page
+# Main pages
 
 @route("/")
 @view("flow")
 def landing_page():
     lat, lon = get_lat_lon()
-    ride_list = get_ride_list(lat, lon)
+    ride_list = get_ride_list(lat, lon)[:MAX_RIDES]
     return session_dict(ride_list=ride_list)
 
 @route("/login")
@@ -274,7 +300,7 @@ def verify_login():
 
     uid, name = find_user_and_name(email, pwhash)
     if uid is None:
-        update_session(error = "We couldn't log you in with those credentials.")
+        update_session(error = "We couldn't log you in with that.")
         return redirect("/login")
     else:
         add_login_to_session(name, email, uid)
@@ -336,7 +362,7 @@ def verify_make():
                 d[key] = request.forms.get(key)
                 if d[key] is None or len(d[key]) == 0:
                     print key
-                    update_session(error = "Fill in all the fields.")
+                    update_session(error = "Fill in all the fields, thanks.")
                     wantorhave = "want"
                     if "wantorhave" in d: wantorhave = d["wantorhave"]
                     return redirect("/make/"+wantorhave)
@@ -355,7 +381,7 @@ def verify_make():
         update_session(success = "Thanks for adding a ride!")
         return redirect("/rides")
     else:
-        update_session(error = "Please login first", cont = "/verify_make", serialized = serialized)
+        update_session(info = "You gotta login to make a ride.", cont = "/verify_make", serialized = serialized)
         return redirect("/login")
 
 @route("/verify_make", method="GET")
@@ -366,19 +392,14 @@ def verify_make_get():
 @view("rides")
 def rides():
     lat, lon = get_lat_lon()
-    ride_list = get_ride_list(lat, lon)
+    ride_list = get_ride_list(lat, lon)[:MAX_RIDES]
     return session_dict(ride_list=ride_list)
-
-def json_result(f):
-    def g(*a, **k):
-        return json.dumps(f(*a, **k))
-    return g
 
 @route("/rides.json")
 @json_result
 def rides_json():
     lat, lon = get_lat_lon()
-    return get_ride_list(lat, lon)    
+    return get_ride_list(lat, lon)[:MAX_RIDES]
 
 @route("/rides.json/:rid")
 @json_result
@@ -396,15 +417,16 @@ def about():
 @view("take")
 def take(rid):
     if 'uid' not in get_session():
-        update_session(error = "Please login to take a ride.", cont="/take/"+str(rid))
+        update_session(info = "You gotta log in to take a ride.", cont="/take/"+str(rid))
         return redirect("/login")
     lat, lon = get_lat_lon()
     ride = format_ride(get_ride(rid), lat, lon)
-    responses = map(format_response, get_all_responses(rid))
+    responses = map(format_response, get_all_responses_for(rid))
     return session_dict(ride=ride, responses=responses)
 
 @route("/verify_take", method="POST")
 def verify_take():
+    s = get_session()
     uid = request.forms.get('uid')
     rid = request.forms.get('rid')
     tip = request.forms.get('tip')
@@ -412,8 +434,10 @@ def verify_take():
     if uid is None or rid is None or len(uid) == 0 or len(rid) == 0:
         update_session(error = "Couldn't find your ride.")
         return redirect("/rides")
+    elif 'uid' not in s or uid != s['uid']:
+        abort(401, "Unauthorized")
     else:
-        response_dict = {'uid2': uid, 'rid': rid, 'confirmation': '',
+        response_dict = {'uid2': uid, 'rid2': rid, 'confirmation': '',
                          'tip': tip, 'comment': comment}
         print "Adding response", response_dict
         add_response(response_dict)
@@ -421,15 +445,41 @@ def verify_take():
 
 @route("/shake/:reid")
 def shake_on_it(reid):
+    s = get_session()
     response = get_response(reid)
+    ride = get_ride(response['rid2'])
+    if 'uid' not in s or ride['uid'] != s['uid']:
+        abort(401, "Unauthorized")
     REDIS.set("confirmation:%s" % reid, "true")
-    return redirect("/take/%s" % response['rid'])
+    return redirect("/take/%s" % response['rid2'])
+
+@route("/nope/:reid")
+def nope(reid):
+    s = get_session()
+    response = get_response(reid)
+    ride = get_ride(response['rid2'])
+    if 'uid' not in s or (ride['uid'] != s['uid'] and response['uid2'] != s['uid']):
+        abort(401, "Unauthorized")
+    for key in RESPONSE_KEYS:
+        REDIS.delete(key+":"+str(reid))
+    return redirect("/take/%s" % response['rid2'])
+
+@route("/mine")
+@view("mine")
+def mine():
+    s = get_session()
+    if 'uid' not in s:
+        return abort(401, "Unauthorized")
+    lat, lon = get_lat_lon()
+    ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == s['uid']]
+    responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == s['uid']])
+    return session_dict(ride_list=ride_list, responses=responses)
 
 @route("/calendar")
 @view("calendar")
 def calendar():
     if 'uid' not in get_session():
-        update_session(error = "Please login see your calendar.", cont="/calendar")
+        update_session(info = "You gotta login see your calendar.", cont="/calendar")
         return redirect("/login")
     # TODO: Fix Hardcoded URL, should come from user
     url = "http://iwantaride-locations.heroku.com/?guser_xml=https%3A%2F%2Fwww.google.com%2Fcalendar%2Ffeeds%2Fb67n04sb5i8jb6ecgagpncve7s%2540group.calendar.google.com%2Fprivate-fa13a64934ab5732e00750e6b799bee7%2Fbasic"
@@ -453,25 +503,29 @@ def render_dict(d):
         return template('dump', row=row)
     return HTTPError(404, "Page not found")    
 
-
 @route("/db/get/:item")
+@debug_only
 def db_get(item):
     return render_row(REDIS.get(item))
 
 @route("/db/set/:item/:value")
+@debug_only
 def db_set(item, value):
     return render_row(REDIS.set(item, value))
 
 @route("/db/hash/:item")
+@debug_only
 def db_hash(item):
     return render_row(hash_password(item))
 
 @route("/db/drop")
+@debug_only
 def db_drop():
     print "DROPPING DATABASE!"
     return render_row(REDIS.flushdb())
 
 @route("/db/show")
+@debug_only
 def db_show():
     keys = REDIS.keys("*")
     d = {}
@@ -504,6 +558,7 @@ def load_lines(schema, lines):
         abort(404, "Unkown schema: "+schema)
 
 @route("/db/loadfixture/:schema/:filename")
+@debug_only
 def db_loadfixture(schema, filename):
     print "Loading schema "+schema
     print "Loading filename "+filename
@@ -512,6 +567,7 @@ def db_loadfixture(schema, filename):
         lines = f.readlines()
     load_lines(schema, lines)
 
+# TODO @debug_only... when we get the schemas in
 @route("/db/loadpost/:schema", method="POST")
 def db_loadpost(schema):
     print "Loading schema "+schema
@@ -540,7 +596,7 @@ if __name__ == "__main__":
     app = SessionMiddleware(default_app(), session_opts)
 
     port = int(os.environ.get("PORT", 5000))
-    debug_flag = bool(os.environ.get("DEBUG", False))
-    if debug_flag:
+    DEBUG = bool(os.environ.get("DEBUG", False))
+    if DEBUG:
         debug(True)
     run(host='0.0.0.0', port=port, app=app)

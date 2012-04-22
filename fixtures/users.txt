@@ -2,7 +2,7 @@ uid, name, email, password
 1, Eric Conlon, ejconlon@gmail.com, ericconlon
 2, Fan Zhu, fan@openspectruminc.com, fanzhu
 3, Nick Stock, stockn@gmail.com, nickstock
-4, Erik Laforest, iwantaridenet+eriklaforest@gmail.com, eriklaforest
+4, Paul Alexander, paul.r.alexander@gmail.com, paulalexander
 5, Darren Bradish, iwantaridenet+darrenbradish@gmail.com, darrenbradish
 6, Max Marshburn, iwantaridenet+maxmarshburn@gmail.com, maxmarshburn
 7, Ashlee Wolfinger, iwantaridenet+ashleewolfinger@gmail.com, ashleewolfinger

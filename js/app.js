@@ -1,4 +1,8 @@
 var DEBUG_ENABLED = true;
+function getBaseURL () {
+   return location.protocol + "//" + location.hostname + 
+      (location.port && ":" + location.port) + "/";
+}
 var lat = null;
 var lon = null;
 
@@ -114,25 +118,30 @@ function my_route(map){
 			if (t.start_marker){
 				t.start_marker.clear_from_map();
 			}
-			t.start_marker = new my_marker("START",t, newStart, 'img/car_icon.jpg','startPoint');
+			t.start_marker = new my_marker("START",t, newStart, getBaseURL()+'img/car_icon.jpg','startPoint');
 			
 		}
 		if (newEnd){
 			if (t.end_marker){
 				t.end_marker.clear_from_map();
 			}
-			t.end_marker = new my_marker("END",t, newEnd, 'img/flag.png','endPoint');
+			t.end_marker = new my_marker("END",t, newEnd, getBaseURL()+'img/flag.png','endPoint');
 		}
 		
 		if ((t.start_marker) && (t.end_marker)){
 			calcRoute(t.start_marker.marker.position,t.end_marker.marker.position);
 		}
 		
-	 	$("#from_lon").val(t.start_marker.marker.position.lng());
-		 $("#from_lat").val(t.start_marker.marker.position.lat());
-		$("#to_lon").val(t.end_marker.marker.position.lng());
-		$("#to_lat").val(t.end_marker.marker.position.lat());
-	
+		if (t.start_marker){
+			$("#from_lon").val(t.start_marker.marker.position.lng());
+			 $("#from_lat").val(t.start_marker.marker.position.lat());
+			
+		}
+		if (t.end_marker){
+			$("#to_lon").val(t.end_marker.marker.position.lng());
+			$("#to_lat").val(t.end_marker.marker.position.lat());
+		}
+	 	
 	
 	}
 	

@@ -475,7 +475,7 @@ def verify_take():
         ride = get_ride(rid)
         givers_email = get_email_by_uid(ride['uid'])
         sender = get_sender()
-        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " wants to join you", "More information @ http://iwantaride.net/ride/%s" % str(rid))
+        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " wants to join you", "More information @ http://iwantaride.herokuapp.com/ride/%s" % str(rid))
         sender.close()
         return redirect("/take/"+str(rid))
 
@@ -492,7 +492,7 @@ def shake_on_it(reid):
     update_session(success = "Great! You're going to share a ride.")
     takers_email = get_email_by_uid(response['uid2'])
     sender = get_sender()
-    sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has accepted your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+    sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has accepted your ride", "More information @ http://iwantaride.herokuapp.com/ride/%s" % response['rid2'])
     sender.close()
 
     return redirect("/take/%s" % response['rid2'])
@@ -512,10 +512,10 @@ def nope(reid):
     sender = get_sender()
     if s['uid'] == ride['uid']:
         takers_email = get_email_by_uid(response['uid2'])
-        sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+        sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.herokuapp.com/ride/%s" % response['rid2'])
     else:
         givers_email = get_email_by_uid(ride['uid'])
-        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.herokuapp.com/ride/%s" % response['rid2'])
     sender.close()
 
 

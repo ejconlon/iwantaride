@@ -15,7 +15,7 @@ DEFAULT_LON = '-122.0297';
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
 
-import os, urlparse, sha, math
+import os, urlparse, sha, math, json
 from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
@@ -302,7 +302,13 @@ def make(haveorwant):
 
 @route("/verify_make", method="POST")
 def verify_make():
-    abort(404, "NOT IMPLEMENTED")
+    from_lat = request.forms.get('from_lat')
+    from_lon = request.forms.get('from_lon')
+    to_lat = request.forms.get('to_lat')
+    to_lon = request.forms.get('to_lon')
+    time = request.forms.get('time')
+    print "Make?", from_lat, from_lon, to_lat, to_lon, time
+    return abort(404, "NOT IMPLEMENTED")
 
 @route("/rides")
 @view("rides")
@@ -310,6 +316,17 @@ def rides():
     lat, lon = get_lat_lon()
     ride_list = get_ride_list(lat, lon)
     return session_dict(ride_list=ride_list)
+
+def json_result(f):
+    def g(*a, **k):
+        return json.dumps(f(*a, **k))
+    return g
+
+@route("/rides.json")
+@json_result
+def rides_json():
+    lat, lon = get_lat_lon()
+    return get_ride_list(lat, lon)    
 
 @route("/about")
 @view("about")
@@ -338,6 +355,7 @@ def verify_take():
     else:
         response_dict = {'uid': uid, 'rid': rid, 'confirmation': '',
                          'tip': tip, 'comment': comment}
+        print "Adding response", response_dict
         add_response(response_dict)
 
 

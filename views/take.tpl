@@ -2,7 +2,7 @@
 
 <h1> Take a ride with {{ ride['name'] }} </h1>
 
-<div id="map_canvas" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
+<div id="map_shower" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
 
 <p> Leaving {{ ride['formatted_from_time'] }} </p>
 

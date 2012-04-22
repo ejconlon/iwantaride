@@ -8,7 +8,7 @@
 <p> Where do you want to go? </p>
 %end
 
-<div id="map_canvas" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
+<div id="map_picker" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
 
 <form name="input" action="/verify_make" method="POST">
       <input type="hidden" name="haveorwant" value="{{ haveorwant }}"/>

@@ -268,7 +268,7 @@ function set_lat_lng() {
 }
 
 function draw_map(){
-	 if ($('#map_canvas').length != 0) {
+	 if ($('#map_picker').length != 0) {
 	var myOptions = {
     zoom: 12,
     disableDoubleClickZoom : true,
@@ -276,7 +276,7 @@ function draw_map(){
     mapTypeId: google.maps.MapTypeId.ROADMAP
   }
 
-  return new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+  return new google.maps.Map(document.getElementById("map_picker"), myOptions);
 }else{
 	return false;
 }

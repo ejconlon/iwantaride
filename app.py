@@ -538,10 +538,28 @@ def calendar():
     if 'uid' not in get_session():
         update_session(info = "You gotta login see your calendar.", cont="/calendar")
         return redirect("/login")
-    # TODO: Fix Hardcoded URL, should come from user
-    url = "http://iwantaride-locations.heroku.com/?guser_xml=https%3A%2F%2Fwww.google.com%2Fcalendar%2Ffeeds%2Fb67n04sb5i8jb6ecgagpncve7s%2540group.calendar.google.com%2Fprivate-fa13a64934ab5732e00750e6b799bee7%2Fbasic"
+    return session_dict()
+
+@route("/calendar_partial")
+@view("calendar_partial")
+def calendar_partial():
+    guser_xml = request.params["guser_xml"]
+    url = "http://iwantaride-locations.heroku.com/?guser_xml=%s" % guser_xml
     cal_entries = json.loads(urllib.urlopen(url).read())
-    return session_dict(cal_entries=cal_entries)
+    return session_dict(cal_entries=cal_entries,uid=get_session()["uid"])
+
+@route("/calendar_make", method="POST")
+def calendar_make():
+    # RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
+    rides = json.loads(request.body.read())
+    lat, lon = get_lat_lon()
+    for ride in rides:
+        ride["from_lat"] = lat
+        ride["from_lon"] = lon
+        ride["from_time"] = ride["to_time"]
+        add_ride(ride)
+    return '{ "success": "success" }'
+
 
 
 ###########

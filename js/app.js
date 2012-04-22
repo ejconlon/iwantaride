@@ -8,8 +8,110 @@ function debug(msg) {
     }
 }
 
+function my_marker(map,latLng,image,title){
+	var t = this;
+	
+	this.map = map;
+	
+	
+	
+	this.marker = new google.maps.Marker({
+    position: latLng,
+    title: title,
+    map: map,
+	icon : image,
+    draggable: true
+  });
+
+	this.clear_from_map = function (){
+		t.marker.setMap(null)
+		google.maps.event.removeListener(t.dragstart);
+		google.maps.event.removeListener(t.drag);
+		google.maps.event.removeListener(t.dragend);
+	
+	}
+	
+   	var _clear_from_map = function (){
+	t.map.removeOverlay(t.marker);
+	google.maps.event.removeListener(t.dragstart);
+	google.maps.event.removeListener(t.drag);
+	google.maps.event.removeListener(t.dragend);
+	}
+
+
+	this.dragstart = google.maps.event.addListener(this.marker, 'dragstart', function() {
+	    debug(t.marker.getPosition());
+	   
+	  });
+
+	  this.drag = google.maps.event.addListener(this.marker, 'drag', function() {
+	    debug('Dragging...');
+	    debug(t.marker.getPosition());
+	  });
+
+	  this.dragend = google.maps.event.addListener(this.marker, 'dragend', function() {
+	    debug('Drag ended');
+	    debug(t.marker.getPosition());
+	  });
+
+
+}
+//
+
+
 function my_map(){
 	var t = this;
+	_construct = function (){
+		t.CURRENT_APP_STATE = 'start';
+		set_lat_lng();
+		t.map = draw_map();
+		t.directionsService = new google.maps.DirectionsService();
+		if (t.map){
+			//overlayPoint();
+			google.maps.event.addListener(t.map, 'dblclick', double_clicked);
+			
+			var myLatLng = new google.maps.LatLng(lat, lon);
+			
+				init_cb();
+
+		}
+		
+	}
+	
+	double_clicked = function (a,b){
+		//new my_marker(t.map, a.latLng, 'img/car_icon.jpg');
+		//debug(t.CURRENT_APP_STATE);
+		t.latLng = a.latLng
+		switch (t.CURRENT_APP_STATE){
+			case "start":
+				
+				t.start_marker = new my_marker(t.map, t.latLng, 'img/car_icon.jpg','startPoint');
+				t.CURRENT_APP_STATE = "startSet";
+			break;
+			case "startSet":
+				 t.end_marker = new my_marker(t.map, t.latLng, 'img/flag.png','endPoint');
+				 t.CURRENT_APP_STATE = "endSet";
+				 calcRoute(t.start_marker.marker.position,t.end_marker.marker.position);
+				
+				
+			break;
+			
+		}
+		
+		debug(a.latLng);
+	}
+	 this.clearClicked = function (){
+		if (this.start_marker){
+			this.start_marker.clear_from_map()
+		}
+		if (this.end_marker){
+			this.end_marker.clear_from_map();
+		}
+		
+		this.CURRENT_APP_STATE = 'start';
+	}
+	
+	
 	function renderDirections(result) {
 	      var directionsRenderer = new google.maps.DirectionsRenderer;
 	      directionsRenderer.setMap(t.map);
@@ -71,7 +173,7 @@ function my_map(){
 			]
 			
 		}
-	processRoute([0,results['routes']]);	
+	//processRoute([0,results['routes']]);	
 		
 		
 	}
@@ -98,7 +200,8 @@ function my_map(){
 		 if ($('#map_canvas').length != 0) {
 		var myOptions = {
 	    zoom: 12,
-	    center: new google.maps.LatLng(lat, lon),
+	    disableDoubleClickZoom : true,
+		center: new google.maps.LatLng(lat, lon),
 	    mapTypeId: google.maps.MapTypeId.ROADMAP
 	  }
 	
@@ -108,23 +211,21 @@ function my_map(){
 	}
 	}
 	
-	set_lat_lng();
-	this.map = draw_map();
-	this.directionsDisplay = new google.maps.DirectionsRenderer();
-	this.directionsDisplay.setMap(this.map);
-	this.directionsService = new google.maps.DirectionsService();
-	if (this.map){
-		//overlayPoint();
-		init_cb();
-		
-	}
+ _construct();
+}
+var instance;
+function initialize(){
+	instance = new my_map();
 }
 
-
 $(document).ready(function() {
+	
 	$("#lonfield").val(lon)
 	$("#lonfield").val(lon)
 	
-	new my_map();
+	google.maps.event.addDomListener(window, 'load', initialize);
+	
+    
+	
 });
 

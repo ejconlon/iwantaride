@@ -55,7 +55,7 @@ def add_ride(ride_dict, rid=None):
     if rid is None:
         rid = REDIS.incr('global:rid_source')
     for k in RIDE_KEYS:
-        REDIS.set(k+":"+rid, ride_dict[k])
+        REDIS.set(k+":"+str(rid), str(ride_dict[k]))
     return rid
 
 def add_response(response_dict, reid=None):
@@ -197,8 +197,13 @@ def get_all_rides():
     return rides
 
 def get_ride_list(my_from_lat, my_from_lon):
+    def key(d):
+        da = int(d['days_away'])
+        if da < 0:
+            da = 8
+        return 1000*da + float(d['start_dist'])
     ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
-                       key=lambda d: 1000*float(d['start_dist']))[:10]
+                       key=key)[:10]
     print "Fount n rides", len(ride_list)
     return ride_list
 
@@ -295,20 +300,49 @@ def logout():
     update_session(info = "Come back soon.")
     return redirect("/")
 
-@route("/make/:haveorwant")
+@route("/make/:wantorhave")
 @view("make")
-def make(haveorwant):
-    return session_dict(haveorwant=haveorwant)
+def make(wantorhave):
+    return session_dict(wantorhave=wantorhave)
 
 @route("/verify_make", method="POST")
 def verify_make():
-    from_lat = request.forms.get('from_lat')
-    from_lon = request.forms.get('from_lon')
-    to_lat = request.forms.get('to_lat')
-    to_lon = request.forms.get('to_lon')
-    time = request.forms.get('time')
-    print "Make?", from_lat, from_lon, to_lat, to_lon, time
-    return abort(404, "NOT IMPLEMENTED")
+    serialized = None
+    s = get_session()
+    if 'serialized' in s:
+        serialized = s['serialized']
+    else:
+        d = {}
+        for key in RIDE_KEYS:
+            if key != 'uid' and key != 'to_time':
+                d[key] = request.forms.get(key)
+                if d[key] is None or len(d[key]) == 0:
+                    print key
+                    update_session(error = "Fill in all the fields.")
+                    wantorhave = "want"
+                    if "wantorhave" in d: wantorhave = d["wantorhave"]
+                    return redirect("/make/"+wantorhave)
+        d['to_time'] = d['from_time']
+        serialized = json.dumps(d)
+
+    print "Make?", serialized
+
+    if 'uid' in s:
+        d = json.loads(serialized)
+        d['uid'] = s['uid']
+        print "Adding ride", d
+        rid = add_ride(d)
+        if 'serialized' in s:
+            del s['serialized']
+        update_session(success = "Thanks for adding a ride!")
+        return redirect("/rides")
+    else:
+        update_session(error = "Please login first", cont = "/verify_make", serialized = serialized)
+        return redirect("/login")
+
+@route("/verify_make", method="GET")
+def verify_make_get():
+    return verify_make()
 
 @route("/rides")
 @view("rides")

@@ -1,0 +1,13 @@
+Hi {{user}},
+
+You’ve received a ride request from {{friend1}}. {{friend1}} is in your extended network on {{network}}.
+ 
+{{friend1}} wants to join you on the way to {{location}} at {{time}} on {{date}} and wants to reach {{destination}}.
+
+He’s offering ${{amount}} as a tip. 
+
+How would you like to respond?
+
+- accept - decline - ignore - this person is not in my network -
+
+{{comment}}

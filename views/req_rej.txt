@@ -1,0 +1,9 @@
+Hi {{User}},
+
+{{friend1}} has rejected your request to share a ride to {{location}}, arriving at {{time}} on {{date}}. 
+
+{{friend1}} said this:
+
+{{comment}}
+
+- look for another ride -

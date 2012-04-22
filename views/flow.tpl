@@ -10,7 +10,8 @@
 <h3> Who's gonna ride? </h3>
 <br/>
 
-%include rides_partial ride_list=ride_list if defined('ride_list') else []
+% has_uid = 'uid' in session
+%include rides_partial ride_list=ride_list if defined('ride_list') else [], has_uid=has_uid
 
 %include footer
 

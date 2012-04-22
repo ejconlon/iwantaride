@@ -11,7 +11,7 @@
 	      <td></td>
        </tr>
      %for ride in ride_list:
-     	  %include ride_partial ride=ride
+     	  %include ride_partial ride=ride, has_uid=has_uid
      %end
 </table>
 

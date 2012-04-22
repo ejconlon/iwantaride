@@ -504,29 +504,29 @@ def render_dict(d):
         return template('dump', row=row)
     return HTTPError(404, "Page not found")    
 
+#@debug_only
 @route("/db/get/:item")
-@debug_only
 def db_get(item):
     return render_row(REDIS.get(item))
 
+#@debug_only
 @route("/db/set/:item/:value")
-@debug_only
 def db_set(item, value):
     return render_row(REDIS.set(item, value))
 
+#@debug_only
 @route("/db/hash/:item")
-@debug_only
 def db_hash(item):
     return render_row(hash_password(item))
 
+#@debug_only
 @route("/db/drop")
-@debug_only
 def db_drop():
     print "DROPPING DATABASE!"
     return render_row(REDIS.flushdb())
 
+#@debug_only
 @route("/db/show")
-@debug_only
 def db_show():
     keys = REDIS.keys("*")
     d = {}
@@ -558,8 +558,8 @@ def load_lines(schema, lines):
     else:
         abort(404, "Unkown schema: "+schema)
 
+#@debug_only
 @route("/db/loadfixture/:schema/:filename")
-@debug_only
 def db_loadfixture(schema, filename):
     print "Loading schema "+schema
     print "Loading filename "+filename
@@ -597,7 +597,7 @@ if __name__ == "__main__":
     app = SessionMiddleware(default_app(), session_opts)
 
     port = int(os.environ.get("PORT", 5000))
-    DEBUG = bool(os.environ.get("APPDEBUG", DEBUG))
+    DEBUG = bool(os.environ.get("DEBUG", DEBUG))
     if DEBUG:
         debug(True)
     run(host='0.0.0.0', port=port, app=app)

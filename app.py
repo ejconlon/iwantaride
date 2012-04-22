@@ -364,10 +364,10 @@ def rides_json():
 
 @route("/rides.json/:rid")
 @json_result
-def rides_json(rid):
+def ride_json(rid):
     lat, lon = get_lat_lon()
     ride = get_ride(rid)
-    return format_ride(ride, lat, lon)
+    return [format_ride(ride, lat, lon)]
 
 @route("/about")
 @view("about")
@@ -398,6 +398,7 @@ def verify_take():
                          'tip': tip, 'comment': comment}
         print "Adding response", response_dict
         add_response(response_dict)
+        return render("/take/"+str(rid))
 
 
 ###########

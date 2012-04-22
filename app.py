@@ -4,7 +4,8 @@
 
 # these two are set in main block
 REDIS = None
-DEBUG = False
+# TODO Really, seriously, set this to false
+DEBUG = True
 MAX_RIDES = 15
 
 SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"

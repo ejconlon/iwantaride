@@ -7,6 +7,10 @@
 <br/>
 <br/>
 
+<form>
+<input type="hidden" id="my_id" value="{{ my_id }}" />
+</form>
+
 %include responses_partial responses=responses, can_shake=False, show_link=True
 
 %include footer

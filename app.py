@@ -544,7 +544,7 @@ def mine(uid):
     lat, lon = get_lat_lon()
     ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == uid]
     responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == uid])
-    return session_dict(ride_list=ride_list, responses=responses)
+    return session_dict(ride_list=ride_list, responses=responses, my_id=uid)
 
 @route("/calendar")
 @view("calendar")

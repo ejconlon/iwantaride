@@ -532,7 +532,8 @@ def nope(reid):
 def mine_default():
     s = get_session()
     if 'uid' not in s:
-        return abort(401, "Unauthorized")
+        update_session(cont = "/mine", warning="You gotta log in to see rides.")
+        return redirect("/login")
     return redirect("/mine/"+s['uid'])
 
 @route("/mine/:uid")
@@ -540,11 +541,13 @@ def mine_default():
 def mine(uid):
     s = get_session()
     if 'uid' not in s:
-        return abort(401, "Unauthorized")
+        update_session(cont = "/mine/"+str(uid), warning="You gotta log in to see rides.")
+        return redirect("/login")
     lat, lon = get_lat_lon()
     ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == uid]
     responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == uid])
-    return session_dict(ride_list=ride_list, responses=responses, my_id=uid)
+    name = get_name_by_uid(uid)
+    return session_dict(ride_list=ride_list, responses=responses, my_id=uid, my_name=name)
 
 @route("/calendar")
 @view("calendar")

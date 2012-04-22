@@ -1,5 +1,5 @@
 <tr class="response">
-    <td> {{ response['name'] }} </td>
+    <td> <a href="/mine/{{response['uid2']}}">{{ response['name'] }}</a> </td>
     <td> {{ response['comment'] }} </td>
     <td>
     %try:

@@ -13,9 +13,9 @@ DEFAULT_LAT = '36.9742';
 DEFAULT_LON = '-122.0297';
 
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
-RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
+RESPONSE_KEYS = ['uid2', 'rid', 'confirmation', 'tip', 'comment']
 
-import os, urlparse, sha, math, urllib, json
+import os, urlparse, sha, math, json, urllib
 from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
@@ -55,14 +55,14 @@ def add_ride(ride_dict, rid=None):
     if rid is None:
         rid = REDIS.incr('global:rid_source')
     for k in RIDE_KEYS:
-        REDIS.set(k+":"+rid, ride_dict[k])
+        REDIS.set(k+":"+str(rid), str(ride_dict[k]))
     return rid
 
 def add_response(response_dict, reid=None):
     if reid is None:
         reid = REDIS.incr('global:reid_source')
     for k in RESPONSE_KEYS:
-        REDIS.set(k+":"+reid, response_dict[k])
+        REDIS.set(k+":"+str(reid), str(response_dict[k]))
     return reid
 
 def get_name_by_uid(uid):
@@ -87,7 +87,7 @@ def days_away(t):
     ymd_string = t.split(" ")[0]
     event_time = datetime.strptime(ymd_string, "%Y-%m-%d").date()
     today = date.today()
-    print today, event_time
+    #print today, event_time
     if today > event_time:
         return -1
     delta = event_time - today
@@ -196,9 +196,32 @@ def get_all_rides():
         rides.append(get_ride(rid))
     return rides
 
+def get_response(reid):
+    d = {'reid':reid}
+    for key in RESPONSE_KEYS:
+        d[key] = REDIS.get('%s:%s' % (key, reid))
+    return d
+
+def get_all_responses(rid):
+    responses = []
+    for exkey in REDIS.keys('rid:*'):
+        reid = exkey.split(':')[-1]
+        if REDIS.get(exkey) == rid:
+            responses.append(get_response(reid))
+    return responses
+
+def format_response(response):
+    response['name'] = get_name_by_uid(response['uid2'])
+    return response
+
 def get_ride_list(my_from_lat, my_from_lon):
+    def key(d):
+        da = int(d['days_away'])
+        if da < 0:
+            da = 8
+        return 1000*da + float(d['start_dist'])
     ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
-                       key=lambda d: 1000*float(d['start_dist']))[:10]
+                       key=key)[:10]
     print "Fount n rides", len(ride_list)
     return ride_list
 
@@ -295,14 +318,49 @@ def logout():
     update_session(info = "Come back soon.")
     return redirect("/")
 
-@route("/make/:haveorwant")
+@route("/make/:wantorhave")
 @view("make")
-def make(haveorwant):
-    return session_dict(haveorwant=haveorwant)
+def make(wantorhave):
+    return session_dict(wantorhave=wantorhave)
 
 @route("/verify_make", method="POST")
 def verify_make():
-    abort(404, "NOT IMPLEMENTED")
+    serialized = None
+    s = get_session()
+    if 'serialized' in s:
+        serialized = s['serialized']
+    else:
+        d = {}
+        for key in RIDE_KEYS:
+            if key != 'uid' and key != 'to_time':
+                d[key] = request.forms.get(key)
+                if d[key] is None or len(d[key]) == 0:
+                    print key
+                    update_session(error = "Fill in all the fields.")
+                    wantorhave = "want"
+                    if "wantorhave" in d: wantorhave = d["wantorhave"]
+                    return redirect("/make/"+wantorhave)
+        d['to_time'] = d['from_time']
+        serialized = json.dumps(d)
+
+    print "Make?", serialized
+
+    if 'uid' in s:
+        d = json.loads(serialized)
+        d['uid'] = s['uid']
+        print "Adding ride", d
+        rid = add_ride(d)
+        if 'serialized' in s:
+            del s['serialized']
+        update_session(success = "Thanks for adding a ride!")
+        return redirect("/rides")
+    else:
+        update_session(error = "Please login first", cont = "/verify_make", serialized = serialized)
+        return redirect("/login")
+
+@route("/verify_make", method="GET")
+def verify_make_get():
+    return verify_make()
 
 @route("/rides")
 @view("rides")
@@ -310,6 +368,24 @@ def rides():
     lat, lon = get_lat_lon()
     ride_list = get_ride_list(lat, lon)
     return session_dict(ride_list=ride_list)
+
+def json_result(f):
+    def g(*a, **k):
+        return json.dumps(f(*a, **k))
+    return g
+
+@route("/rides.json")
+@json_result
+def rides_json():
+    lat, lon = get_lat_lon()
+    return get_ride_list(lat, lon)    
+
+@route("/rides.json/:rid")
+@json_result
+def ride_json(rid):
+    lat, lon = get_lat_lon()
+    ride = get_ride(rid)
+    return [format_ride(ride, lat, lon)]
 
 @route("/about")
 @view("about")
@@ -320,11 +396,34 @@ def about():
 @view("take")
 def take(rid):
     if 'uid' not in get_session():
-        update_session(error = "Please login to take a ride.", cont="/take/"+rid)
+        update_session(error = "Please login to take a ride.", cont="/take/"+str(rid))
         return redirect("/login")
     lat, lon = get_lat_lon()
     ride = format_ride(get_ride(rid), lat, lon)
-    return session_dict(ride=ride)
+    responses = map(format_response, get_all_responses(rid))
+    return session_dict(ride=ride, responses=responses)
+
+@route("/verify_take", method="POST")
+def verify_take():
+    uid = request.forms.get('uid')
+    rid = request.forms.get('rid')
+    tip = request.forms.get('tip')
+    comment = request.forms.get('comment')
+    if uid is None or rid is None or len(uid) == 0 or len(rid) == 0:
+        update_session(error = "Couldn't find your ride.")
+        return redirect("/rides")
+    else:
+        response_dict = {'uid2': uid, 'rid': rid, 'confirmation': '',
+                         'tip': tip, 'comment': comment}
+        print "Adding response", response_dict
+        add_response(response_dict)
+        return redirect("/take/"+str(rid))
+
+@route("/shake/:reid")
+def shake_on_it(reid):
+    response = get_response(reid)
+    REDIS.set("confirmation:%s" % reid, "true")
+    return redirect("/take/%s" % response['rid'])
 
 @route("/calendar")
 @view("calendar")

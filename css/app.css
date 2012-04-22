@@ -1,3 +1,11 @@
+h1, #map_picker, #map_shower {
+    margin-bottom: 20px;
+}
+
+td {
+    padding: 5px;
+}
+
 .info, .success, .warning, .error, .validation, .flowbutton {
 border: 1px solid;
 margin: 10px 0px;

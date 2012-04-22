@@ -9,7 +9,7 @@
 
     <!-- Le styles -->
     <link href="/css/bootstrap.css" rel="stylesheet"/>
-    <link href="/css/ui-darkness/jquery-ui-1.8.19.custom.css" rel="stylesheet"/>
+    <!-- <link href="/css/ui-darkness/jquery-ui-1.8.19.custom.css" rel="stylesheet"/>-->
     <link href="/css/app.css" rel="stylesheet"/>
     <style>
       body {

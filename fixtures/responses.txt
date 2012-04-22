@@ -1,9 +1,4 @@
 reid, uid2, rid2, confirmation, tip, comment
-1, 1, 4, true, 3, Meet at corner of Sesame and Elm Street.
-2, 10, 7, true, 0, Call 123.456.7890 when you get here.
-3, 2, 12, false, 4, ,
-4, 19, 24, true, 6, I'll help pay for gas :)
-5, 18, 17, false, 3, ,
-6, 15, 22, true, 4, I'll call when I get there.
-7, 3, 20, false, 0, ,
-8, 21, 5, false, 3, ,
+1, 6, 8, true, 3, Meet at corner of Sesame and Elm Street.
+2, 2, 9, true, 0, Call 123.456.7890 when you get here.
+3, 7, 10, false, 4, ,

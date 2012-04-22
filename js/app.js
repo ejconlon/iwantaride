@@ -195,8 +195,6 @@ function my_route(my_map,isEditable){
 	
 	
 	double_clicked = function (a){
-		//new my_marker(t.map, a.latLng, 'img/car_icon.jpg');
-		//debug(t.CURRENT_APP_STATE);
 		t.latLng = a.latLng
 		switch (t.CURRENT_APP_STATE){
 			case "start":
@@ -350,7 +348,7 @@ function app(){
 		// 							  });
 	
 		
-		var directionsRenderer = new google.maps.DirectionsRenderer({suppressMarkers : false , polylineOptions : {strokeColor:stroke, opacity:1}});
+		var directionsRenderer = new google.maps.DirectionsRenderer({suppressInfoWindows :true, suppressMarkers : false , polylineOptions : {strokeColor:stroke, opacity:1}});
 			directionsRenderer.setMap(t.map_shower.map);
 			directionsRenderer.setDirections(directionOverlay);
 			var id = new_id;
@@ -400,7 +398,7 @@ function app(){
 				}	
 				});
 				
-			t.globalDirectionRender = new google.maps.DirectionsRenderer;
+			t.globalDirectionRender = new google.maps.DirectionsRenderer({"suppressInfoWindows": true});
 			t.globalDirectionRender.setMap(t.map_picker.map);
 
 			 route = new my_route(t.map_picker,true);

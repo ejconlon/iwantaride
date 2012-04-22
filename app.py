@@ -438,6 +438,13 @@ def ride_json(rid):
     ride = get_ride(rid)
     return [format_ride(ride, lat, lon)]
 
+@route("/myrides.json/:uid")
+@json_result
+def myrides_json(uid):
+    lat, lon = get_lat_lon()
+    rides = get_ride_list(lat, lon)
+    return [ride for ride in rides if ride['uid'] == uid][:MAX_RIDES]
+
 @route("/about")
 @view("about")
 def about():
@@ -522,14 +529,21 @@ def nope(reid):
     return redirect("/take/%s" % response['rid2'])
 
 @route("/mine")
+def mine_default():
+    s = get_session()
+    if 'uid' not in s:
+        return abort(401, "Unauthorized")
+    return redirect("/mine/"+s['uid'])
+
+@route("/mine/:uid")
 @view("mine")
-def mine():
+def mine(uid):
     s = get_session()
     if 'uid' not in s:
         return abort(401, "Unauthorized")
     lat, lon = get_lat_lon()
-    ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == s['uid']]
-    responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == s['uid']])
+    ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == uid]
+    responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == uid])
     return session_dict(ride_list=ride_list, responses=responses)
 
 @route("/calendar")

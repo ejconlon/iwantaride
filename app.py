@@ -268,6 +268,8 @@ def get_all_responses():
 
 def format_response(response):
     response['name'] = get_name_by_uid(response['uid2'])
+    ride = get_ride(response['rid2'])
+    response['wantorhave'] = ride['wantorhave']
     return response
 
 def get_ride_list(my_from_lat, my_from_lon):
@@ -443,8 +445,9 @@ def ride_json(rid):
 def myrides_json(uid):
     lat, lon = get_lat_lon()
     all_rides = get_ride_list(lat, lon)
-    responded_ride_ids = [x['rid2'] for x in get_all_responses() if x['uid2'] == uid]
     my_rides = [r for r in all_rides if r['uid'] == uid]
+    rlids = [r['rid'] for r in my_rides]
+    responded_ride_ids = [x['rid2'] for x in get_all_responses() if x['uid2'] == uid or x['rid2'] in rlids]
     my_responded_rides = [r for r in all_rides if r['uid'] in responded_ride_ids]
     return my_rides + my_responded_rides
 
@@ -688,7 +691,7 @@ if __name__ == "__main__":
 
     session_opts = {
         'session.type': 'file',
-        'session.cookie_expires': 300,
+        'session.cookie_expires': 6000,
         'session.data_dir': './data',
         'session.auto': True
     }

@@ -1,16 +1,31 @@
 %include header extra_title = "", session=session
 
-<div id="wantaride" class="flowbutton"> <a href="/make/want">I WANT A Ride!</a> </div>
+<h1>Ridesharing that's quick, safe, and simple.</h1>
 
-<div id="havearide" class="flowbutton"> <a href="/make/have">I HAVE A Ride!</a> </div>
+<a href="/make/want">
+   <div class="flowbutton">
+   	I WANT a Ride
+   </div>
+</a>
 
-<div id="howitworks" class="flowbutton"> <a href="/about">How does it work?</a> </div>
+<a href="/make/have">
+   <div class="flowbutton">
+       I HAVE a Ride
+   </div>
+</a> 
+
+<a href="/about">
+   <div class="flowbutton">
+       How does it work?
+   </div>
+</a>
 
 <br/>
-<h3> Who's gonna ride? </h3>
+<h3> Who wants a ride nearby? </h3>
 <br/>
 
-%include rides_partial ride_list=ride_list if defined('ride_list') else []
+% has_uid = 'uid' in session
+%include rides_partial ride_list=ride_list if defined('ride_list') else [], has_uid=has_uid
 
 %include footer
 

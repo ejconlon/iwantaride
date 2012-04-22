@@ -1,4 +1,4 @@
-reid, uid, rid, confirmation, tip, comment
+reid, uid2, rid2, confirmation, tip, comment
 1, 1, 4, true, 3, Meet at corner of Sesame and Elm Street.
 2, 10, 7, true, 0, Call 123.456.7890 when you get here.
 3, 2, 12, false, 4, ,

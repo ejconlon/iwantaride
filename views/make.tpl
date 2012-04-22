@@ -1,14 +1,16 @@
 %include header extra_title = "", session=session
 
 %if wantorhave == 'have':
-<h1> I HAVE A Ride </h1>
-<p> Where are you going? </p>
+<h1> I HAVE a Ride </h1>
+<h3> Where are you going? </h3>
 %else:
-<h1> I WANT A Ride </h1>
-<p> Where do you want to go? </p>
+<h1> I WANT a Ride </h1>
+<h3> Where do you want to go? </h3>
 %end
 
-<div id="map_picker" style="display:block; width: 300px; height: 300px; background-color: #cccccc"></div>
+<br/>
+
+<div id="map_picker"></div>
 
 <form name="input" action="/verify_make" method="POST">
       <input type="hidden" name="wantorhave" value="{{ wantorhave }}"/>
@@ -17,8 +19,8 @@
       <input type="hidden" id="to_lat" name="to_lat" />
       <input type="hidden" id="to_lon" name="to_lon" />
       <table>
-	<tr><td>Time:</td><td><input type="text" name="from_time" id="datepicker" value="2012-04-22"/></td></tr>
-	<tr><td colspan="2"><input type="submit" value="Share it" /></td></tr>
+	<tr><td>Time:</td><td><input type="text" name="from_time" id="datepicker" value="2012-04-22"/></td>
+	<td><input type="submit" value="Share it" /></td></tr>
       </table>
 </form>
 

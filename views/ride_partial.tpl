@@ -7,7 +7,7 @@
 	%end
     </td>
     %if has_uid:
-    <td> {{ ride['name'] }} </td>
+    <td> <a href="/mine/{{ride['uid']}}">{{ ride['name'] }}</a> </td>
     %else:
     <td> Someone </td>
     %end

@@ -11,6 +11,7 @@
     </td>
     %if len(response['confirmation']):
     <td> Confirmed. </td>
+    <td></td>
     %else:
 	%if can_shake:
 	    <td> <a href="/shake/{{ response['reid'] }}">Shake on it!</a></td>

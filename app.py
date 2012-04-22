@@ -442,8 +442,11 @@ def ride_json(rid):
 @json_result
 def myrides_json(uid):
     lat, lon = get_lat_lon()
-    rides = get_ride_list(lat, lon)
-    return [ride for ride in rides if ride['uid'] == uid][:MAX_RIDES]
+    all_rides = get_ride_list(lat, lon)
+    responded_ride_ids = [x['rid2'] for x in get_all_responses() if x['uid2'] == uid]
+    my_rides = [r for r in all_rides if r['uid'] == uid]
+    my_responded_rides = [r for r in all_rides if r['uid'] in responded_ride_ids]
+    return my_rides + my_responded_rides
 
 @route("/about")
 @view("about")

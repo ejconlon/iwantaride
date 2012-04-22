@@ -14,6 +14,12 @@
    </div>
 </a> 
 
+<a href="/calendar">
+   <div class="flowbutton">
+       RIDE TO my events
+   </div>
+</a> 
+
 <a href="/about">
    <div class="flowbutton">
        How does it work?

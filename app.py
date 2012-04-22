@@ -7,6 +7,8 @@ REDIS = None
 # TODO Really, seriously, set this to false
 DEBUG = True
 MAX_RIDES = 15
+SENDGRID_USERNAME = ''
+SENDGRID_PASSWORD = ''
 
 SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 
@@ -21,6 +23,7 @@ from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
 import redis
+import sendmail
 
 ###########
 # Bottle handler decorators
@@ -40,6 +43,22 @@ def json_result(f):
         return json.dumps(f(*a, **k))
     return g
 
+###########
+# Email utils
+
+class DummySender():
+    def __init__(self, x, y):
+        print "SENDER INITING"
+    def send_mail(self, a, b, c, d):
+        print "SENDER SENDING", a, b, c, d
+    def close(self):
+        print "SENDER CLOSING"
+
+def get_sender():
+    if len(SENDGRID_USERNAME) > 0 and len(SENDGRID_PASSWORD) > 0:
+        return sendmail.EmailSender(SENDGRID_USERNAME, SENDGRID_PASSWORD)
+    else:
+        return DummySender(SENDGRID_USERNAME, SENDGRID_PASSWORD)
 
 ##########
 # Data model junk
@@ -66,6 +85,9 @@ def add_user(name, email, pwhash, uid=None):
     else:
         if uid is None:
             uid = REDIS.incr('global:uid_source')
+        else:
+            REDIS.incr('global:uid_source')
+        REDIS.set('email:%s' % uid, email)
         REDIS.set('email:%s:uid' % email, uid)
         REDIS.set('pwhash:%s' % uid, pwhash)
         REDIS.set('name:%s' % uid, name)
@@ -74,6 +96,8 @@ def add_user(name, email, pwhash, uid=None):
 def add_ride(ride_dict, rid=None):
     if rid is None:
         rid = REDIS.incr('global:rid_source')
+    else:
+        REDIS.incr('global:rid_source')
     for k in RIDE_KEYS:
         REDIS.set(k+":"+str(rid), str(ride_dict[k]))
     return rid
@@ -81,12 +105,17 @@ def add_ride(ride_dict, rid=None):
 def add_response(response_dict, reid=None):
     if reid is None:
         reid = REDIS.incr('global:reid_source')
+    else:
+        REDIS.incr('global:reid_source')
     for k in RESPONSE_KEYS:
         REDIS.set(k+":"+str(reid), str(response_dict[k]))
     return reid
 
 def get_name_by_uid(uid):
     return REDIS.get('name:%s' % uid)
+
+def get_email_by_uid(uid):
+    return REDIS.get('email:%s' % uid)
 
 def rad(x):
     return 0.0174532925*float(x)
@@ -428,20 +457,26 @@ def take(rid):
 @route("/verify_take", method="POST")
 def verify_take():
     s = get_session()
-    uid = request.forms.get('uid')
     rid = request.forms.get('rid')
     tip = request.forms.get('tip')
     comment = request.forms.get('comment')
-    if uid is None or rid is None or len(uid) == 0 or len(rid) == 0:
+    if rid is None or len(rid) == 0:
         update_session(error = "Couldn't find your ride.")
         return redirect("/rides")
-    elif 'uid' not in s or uid != s['uid']:
+    elif 'uid' not in s:
         abort(401, "Unauthorized")
     else:
-        response_dict = {'uid2': uid, 'rid2': rid, 'confirmation': '',
+        response_dict = {'uid2': s['uid'], 'rid2': rid, 'confirmation': '',
                          'tip': tip, 'comment': comment}
         print "Adding response", response_dict
         add_response(response_dict)
+        update_session(success = "We told them that you wanted to ride along.")
+        # TODO send email
+        ride = get_ride(rid)
+        givers_email = get_email_by_uid(ride['uid'])
+        sender = get_sender()
+        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " wants to join you", "More information @ http://iwantaride.net/ride/%s" % str(rid))
+        sender.close()
         return redirect("/take/"+str(rid))
 
 @route("/shake/:reid")
@@ -452,6 +487,14 @@ def shake_on_it(reid):
     if 'uid' not in s or ride['uid'] != s['uid']:
         abort(401, "Unauthorized")
     REDIS.set("confirmation:%s" % reid, "true")
+
+    # TODO Send email
+    update_session(success = "Great! You're going to share a ride.")
+    takers_email = get_email_by_uid(response['uid2'])
+    sender = get_sender()
+    sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has accepted your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+    sender.close()
+
     return redirect("/take/%s" % response['rid2'])
 
 @route("/nope/:reid")
@@ -463,6 +506,19 @@ def nope(reid):
         abort(401, "Unauthorized")
     for key in RESPONSE_KEYS:
         REDIS.delete(key+":"+str(reid))
+
+    # TODO Send email
+    update_session(info = "Maybe next time you can share a ride.")
+    sender = get_sender()
+    if s['uid'] == ride['uid']:
+        takers_email = get_email_by_uid(response['uid2'])
+        sender.send_mail("iwantaridenet@gmail.com", takers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+    else:
+        givers_email = get_email_by_uid(ride['uid'])
+        sender.send_mail("iwantaridenet@gmail.com", givers_email, s['name'] + " has declined your ride", "More information @ http://iwantaride.net/ride/%s" % response['rid2'])
+    sender.close()
+
+
     return redirect("/take/%s" % response['rid2'])
 
 @route("/mine")
@@ -482,10 +538,28 @@ def calendar():
     if 'uid' not in get_session():
         update_session(info = "You gotta login see your calendar.", cont="/calendar")
         return redirect("/login")
-    # TODO: Fix Hardcoded URL, should come from user
-    url = "http://iwantaride-locations.heroku.com/?guser_xml=https%3A%2F%2Fwww.google.com%2Fcalendar%2Ffeeds%2Fb67n04sb5i8jb6ecgagpncve7s%2540group.calendar.google.com%2Fprivate-fa13a64934ab5732e00750e6b799bee7%2Fbasic"
+    return session_dict()
+
+@route("/calendar_partial")
+@view("calendar_partial")
+def calendar_partial():
+    guser_xml = request.params["guser_xml"]
+    url = "http://iwantaride-locations.heroku.com/?guser_xml=%s" % guser_xml
     cal_entries = json.loads(urllib.urlopen(url).read())
-    return session_dict(cal_entries=cal_entries)
+    return session_dict(cal_entries=cal_entries,uid=get_session()["uid"])
+
+@route("/calendar_make", method="POST")
+def calendar_make():
+    # RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
+    rides = json.loads(request.body.read())
+    lat, lon = get_lat_lon()
+    for ride in rides:
+        ride["from_lat"] = lat
+        ride["from_lon"] = lon
+        ride["from_time"] = ride["to_time"]
+        add_ride(ride)
+    return '{ "success": "success" }'
+
 
 
 ###########
@@ -587,6 +661,9 @@ if __name__ == "__main__":
     else:
         redis_host = os.environ.get("REDIS_HOST", "localhost")
         REDIS = redis.Redis(host=redis_host)
+
+    SENDGRID_USERNAME = os.environ.get('SENDGRID_USERNAME', '')
+    SENDGRID_PASSWORD = os.environ.get('SENDGRID_PASSWORD', '')
 
     session_opts = {
         'session.type': 'file',

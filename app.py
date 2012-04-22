@@ -15,7 +15,7 @@ DEFAULT_LON = '-122.0297';
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 RESPONSE_KEYS = ['uid', 'rid', 'confirmation', 'tip', 'comment']
 
-import os, urlparse, sha
+import os, urlparse, sha, math
 from bottle import *
 from beaker.middleware import SessionMiddleware
 import redis
@@ -64,6 +64,35 @@ def add_response(response_dict, reid=None):
         REDIS.set(k+":"+reid, response_dict[k])
     return reid
 
+def get_name_by_uid(uid):
+    return REDIS.get('name:%s' % uid)
+
+def rad(x):
+    return 0.0174532925*float(x)
+
+def distance(lat1, lon1, lat2, lon2):
+    lat1 = rad(lat1)
+    lon1 = rad(lon1)
+    lat2 = rad(lat2)
+    lon2 = rad(lon2)
+    R = 3963.1676 # in miles
+    x = (lon2-lon1) * math.cos((lat1+lat2)/2);
+    y = (lat2-lat1);
+    d = math.sqrt(x*x + y*y) * R;
+    print lat1, lon1, lat2, lon2, d
+    return d
+
+def format_time(t):
+    # TODO make friendly
+    return t
+
+def format_ride(ride, my_from_lat, my_from_lon):
+    ride['name'] = get_name_by_uid(ride['uid'])
+    ride['start_dist'] = distance(ride['from_lat'], ride['from_lon'], my_from_lat, my_from_lon)
+    ride['end_dist'] = distance(ride['to_lat'], ride['to_lon'], my_from_lat, my_from_lon)
+    ride['formatted_from_time'] = format_time(ride['from_time'])
+    ride['formatted_to_time'] = format_time(ride['to_time'])
+    return ride
 
 def get_session():
     return request.environ.get('beaker.session')
@@ -120,8 +149,25 @@ def get_lat_lon():
     else:
         return DEFAULT_LAT, DEFAULT_LON
 
-def get_ride_list(lat, lon):
-    return ["ride 1", "ride 2"]
+def get_ride(rid):
+    d = {'rid':rid}
+    for key in RIDE_KEYS:
+        d[key] = REDIS.get('%s:%s' % (key, rid))
+    return d
+
+def get_all_rides():
+    rides = []
+    for exkey in REDIS.keys('from_lon:*'):
+        rid = exkey.split(':')[-1]
+        rides.append(get_ride(rid))
+    return rides
+
+def get_ride_list(my_from_lat, my_from_lon):
+    ride_list = sorted([format_ride(ride, my_from_lat, my_from_lon) for ride in get_all_rides()],
+                       key=lambda d: float(d['start_dist']))[:10]
+    print "Fount n rides", len(ride_list)
+    return ride_list
+
 
 ############
 # Static resource handlers
@@ -150,7 +196,9 @@ def img_static(filename):
 @route("/")
 @view("flow")
 def landing_page():
-    return session_dict()
+    lat, lon = get_lat_lon()
+    ride_list = get_ride_list(lat, lon)
+    return session_dict(ride_list=ride_list)
 
 @route("/login")
 @view("login")
@@ -233,6 +281,16 @@ def rides():
 @view("about")
 def about():
     return session_dict()
+
+@route("/take/:rid")
+@view("take")
+def take(rid):
+    if 'uid' not in get_session():
+        update_session(error = "Please login to take a ride.")
+        return redirect("/login")
+    lat, lon = get_lat_lon()
+    ride = format_ride(get_ride(rid), lat, lon)
+    return session_dict(ride=ride)
 
 ###########
 # Dump db info

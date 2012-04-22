@@ -20,6 +20,12 @@
    </div>
 </a> 
 
+<a href="/mine">
+   <div class="flowbutton">
+       SEE my rides
+   </div>
+</a> 
+
 <a href="/about">
    <div class="flowbutton">
        How does it work?

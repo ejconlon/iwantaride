@@ -548,7 +548,8 @@ def mine(uid):
         return redirect("/login")
     lat, lon = get_lat_lon()
     ride_list = [x for x in get_ride_list(lat, lon) if x['uid'] == uid]
-    responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == uid])
+    rlids = [x['rid'] for x in ride_list]
+    responses = map(format_response, [x for x in get_all_responses() if x['uid2'] == uid or x['rid2'] in rlids])
     name = get_name_by_uid(uid)
     return session_dict(ride_list=ride_list, responses=responses, my_id=uid, my_name=name)
 

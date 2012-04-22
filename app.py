@@ -15,7 +15,7 @@ DEFAULT_LON = '-122.0297';
 RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
 RESPONSE_KEYS = ['uid2', 'rid', 'confirmation', 'tip', 'comment']
 
-import os, urlparse, sha, math, json
+import os, urlparse, sha, math, json, urllib
 from datetime import datetime, date, time
 from bottle import *
 from beaker.middleware import SessionMiddleware
@@ -424,6 +424,18 @@ def shake_on_it(reid):
     response = get_response(reid)
     REDIS.set("confirmation:%s" % reid, "true")
     return redirect("/take/%s" % response['rid'])
+
+@route("/calendar")
+@view("calendar")
+def calendar():
+    if 'uid' not in get_session():
+        update_session(error = "Please login see your calendar.", cont="/calendar")
+        return redirect("/login")
+    # TODO: Fix Hardcoded URL, should come from user
+    url = "http://iwantaride-locations.heroku.com/?guser_xml=https%3A%2F%2Fwww.google.com%2Fcalendar%2Ffeeds%2Fb67n04sb5i8jb6ecgagpncve7s%2540group.calendar.google.com%2Fprivate-fa13a64934ab5732e00750e6b799bee7%2Fbasic"
+    cal_entries = json.loads(urllib.urlopen(url).read())
+    return session_dict(cal_entries=cal_entries)
+
 
 ###########
 # Dump db info

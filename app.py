@@ -2,13 +2,13 @@
 
 # If you want to log something, simply print it in the request handler!
 
-# these two are set in main block
+# these four are set in main block
 REDIS = None
-# TODO Really, seriously, set this to false
-DEBUG = True
-MAX_RIDES = 15
+DEBUG = False
 SENDGRID_USERNAME = ''
 SENDGRID_PASSWORD = ''
+
+MAX_RIDES = 15
 
 SALT="$JSFJF$J@NNSj4SFj2F@t5m5@5jfk@@SMSMCO"
 

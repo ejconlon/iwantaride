@@ -574,7 +574,6 @@ def calendar_partial():
 
 @route("/calendar_make", method="POST")
 def calendar_make():
-    # RIDE_KEYS = ['uid', 'from_lat', 'to_lat', 'from_lon', 'to_lon', 'from_time', 'to_time', 'wantorhave']
     rides = json.loads(request.body.read())
     lat, lon = get_lat_lon()
     for ride in rides:

@@ -602,28 +602,28 @@ def render_dict(d):
         return template('dump', row=row)
     return HTTPError(404, "Page not found")    
 
-#@debug_only
+@debug_only
 @route("/db/get/:item")
 def db_get(item):
     return render_row(REDIS.get(item))
 
-#@debug_only
+@debug_only
 @route("/db/set/:item/:value")
 def db_set(item, value):
     return render_row(REDIS.set(item, value))
 
-#@debug_only
+@debug_only
 @route("/db/hash/:item")
 def db_hash(item):
     return render_row(hash_password(item))
 
-#@debug_only
+@debug_only
 @route("/db/drop")
 def db_drop():
     print "DROPPING DATABASE!"
     return render_row(REDIS.flushdb())
 
-#@debug_only
+@debug_only
 @route("/db/show")
 def db_show():
     keys = REDIS.keys("*")
@@ -656,7 +656,7 @@ def load_lines(schema, lines):
     else:
         abort(404, "Unkown schema: "+schema)
 
-#@debug_only
+@debug_only
 @route("/db/loadfixture/:schema/:filename")
 def db_loadfixture(schema, filename):
     print "Loading schema "+schema
@@ -666,7 +666,7 @@ def db_loadfixture(schema, filename):
         lines = f.readlines()
     load_lines(schema, lines)
 
-# TODO @debug_only... when we get the schemas in
+@debug_only
 @route("/db/loadpost/:schema", method="POST")
 def db_loadpost(schema):
     print "Loading schema "+schema

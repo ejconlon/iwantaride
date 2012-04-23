@@ -40,8 +40,8 @@
 
 <p> Created by
 <a href="https://github.com/ejconlon">Eric Conlon</a>,
-Fan Zhu,
-Nick Stock,
+<a href="http://www.linkedin.com/in/fanzhu">Fan Zhu</a>,
+<a href="http://www.linkedin.com/in/nicholasstock">Nick Stock</a>,
 and <a href="https://github.com/palexander">Paul Alexander</a>.
 </p>
 

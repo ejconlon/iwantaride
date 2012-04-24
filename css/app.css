@@ -9,7 +9,9 @@ body {
 h1 {
     margin-bottom: 20px;
 }
-
+.highlight{
+	background-color:white!important;
+}
 .about {
     font-size: 12pt;
 }

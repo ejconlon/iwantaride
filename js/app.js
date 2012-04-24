@@ -39,8 +39,7 @@ function my_marker(type,route,latLng,image,title){
 
 
 	  this.dragend = google.maps.event.addListener(this.marker, 'dragend', function(a) {
-	    debug('Drag ended');
-		switch (t.marker_type){
+	    switch (t.marker_type){
 				case "START":
 					t.my_route.action(t.latLng);
 				break;
@@ -48,19 +47,22 @@ function my_marker(type,route,latLng,image,title){
 					t.my_route.action(false,t.latLng);
 				break;
 		}
-	    debug(a);
+	    
 	  });
 	
 
 
 }
 //
-function my_route_display(my_map,route){
+function my_route_data(my_map,route){
 	var t = this;
 	 t.loaded_routes =[];
 	 t.loaded_route_ids = {};
 	t.map = my_map.map;
 	t.my_route = route;
+	t.get = function (id){
+		return t.loaded_routes[t.loaded_route_ids[id]]
+	}
 	var _construct = function (){
 		
 		if ($("#ride_id").val()){
@@ -78,7 +80,7 @@ function my_route_display(my_map,route){
 		  url: getBaseURL() + url,
 		  context: t,
 		}).done(function(a) { 
-		  	t.processRoute([0,a]);	
+			t.processRoute([0,a]);	
 			
 		});
 		
@@ -87,11 +89,12 @@ function my_route_display(my_map,route){
 	 t.processRoute = function(argumentArray){
 		
 		var key = argumentArray[0];
+		
 		var results = argumentArray[1];
 		var newKey = key + 1; 
 		if (results[key]){
 			t.loaded_routes.push(results[key]);
-			t.loaded_route_ids[results[key]['uid']] = key;
+			t.loaded_route_ids[results[key]['rid']] = key;
 			
 			
 			currentResult = results[key];
@@ -103,13 +106,14 @@ function my_route_display(my_map,route){
 			var endLatLng = new google.maps.LatLng(lat, lon);
 			var cb_arguments = [newKey,  results]
 			var return_id;
-			if (results[key]['uid']){
+			if (results[key]['rid']){
 				
-				return_id = results[key]['uid']
+				return_id = results[key]['rid']
 			}else{
 				return_id = false
 			}
-				 t.my_route.calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments,return_id);
+				 
+				t.my_route.calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments,return_id,results);
 			}
 		
 	}
@@ -208,7 +212,7 @@ function my_route(my_map,isEditable){
 			
 		}
 		
-		debug(a.latLng);
+		
 	}
 	 this.clearClicked = function (){
 		if (this.start_marker){
@@ -222,8 +226,8 @@ function my_route(my_map,isEditable){
 	}
 	
 	
-	function renderDirections(result,id) {
-		$("#"+t.map.b.id).trigger('route_processed', [result,id]);
+	function renderDirections(result,id,oldResult) {
+		$("#"+t.map.b.id).trigger('route_processed', [result,id,oldResult]);
 		
 	   }
 	
@@ -232,7 +236,7 @@ function my_route(my_map,isEditable){
 	}
 	
 
-	 t.calcRoute = function (start,end,calc_cb,cb_args,id) {
+	 t.calcRoute = function (start,end,calc_cb,cb_args,id,result) {
     	var request = {
         origin:start, 
         destination:end,
@@ -240,11 +244,13 @@ function my_route(my_map,isEditable){
     	};
 
 		t.directionsService.route(request, function(response, status) {
-		debug("callback called");
-		debug(status)	;
-      if (status == google.maps.DirectionsStatus.OK) {
-		renderDirections(response,id);
+	  if (status == google.maps.DirectionsStatus.OK) {
+		renderDirections(response,id,result);
       }
+		else{
+			
+		}
+		
 		if (typeof(calc_cb)=="function"){
 				calc_cb(cb_args);
 
@@ -308,65 +314,119 @@ function my_map(id){
 }
 
 
+function Renderer(){
+	var t = this;
+	t.setMap = function(map){
+		t.view.setMap(map);
+	}
+	 t.open_window = function (content){
+		
+	if (!t.infoMarker.map){
+		t.infoMarker.setMap(t.view.map);
+	}
+	t.infowindow.setContent(content);
+	t.infoMarker.setPosition(t.view.map.center);
 	
+	t.infowindow.open(t.view.map,t.infoMarker);
+	}
+	 t.close_window = function (){
+		t.infowindow.close();
+	}
+	t.setData = function (currentData){
+			if ((currentData) &&(currentData["wantorhave"]=="have")){
+				t.stroke = "#40e0d0";
+			}else{
+				t.stroke = "#FF9966";
+
+
+			}
+			t.view.polylineOptions.strokeColor = t.stroke;
+		
+	
+	}
+	t.setDirections = function (directionOverlay){
+		t.view.setDirections(directionOverlay)
+	}
+	var _construct = function(){
+			t.stoke = "#FF9966"
+				t.infowindow = new google.maps.InfoWindow({
+					content:   "hllo",
+					pixelOffset : {width:1,height:1},
+					disableAutoPan : true
+					
+			    });
+				t.infoMarker =  new google.maps.Marker({
+			    visible : false
+			});
+			 t.view = new google.maps.DirectionsRenderer({suppressInfoWindows :true, suppressMarkers : false , polylineOptions : {strokeColor:t.stroke, strokeOpacity:0.3}});
+	}
+	_construct();
+	
+}	
 
 function app(){
 	
 	var t = this;
 	t.map_shower = false;
+	t.direction_renderes ={};
 	t.map_picker = false;
 	t.globalDirectionRender = false;	
 	t.current_data = false;
-	var map_shower_reader_handler = function (event,directionOverlay,new_id){
-		
-		
-		
-		var id = new_id;
-		var currentData = t.display_port_shower.loaded_routes;
-		currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
-		if ((currentData) &&(currentData["wantorhave"]=="have")){
-			var stroke = "#40e0d0";
-		}else{
-			var stroke = "#FF9966";
-			
-			
-		}
-		// var image = getBaseURL()+'img/car_icon.jpg';
-		// 	var marker = new google.maps.Marker({
-		// 				    position: directionOverlay.routes[0].legs[0].start_location,
-		// 				    title: "Start",
-		// 				    map: t.map_shower.map,
-		// 			icon : image,
-		// 				  });
-		// 			
-		// 				 image = getBaseURL()+'img/flag.png';
-		// 				 marker = new google.maps.Marker({
-		// 							    position: directionOverlay.routes[0].legs[0].end_location,
-		// 							    title: "end",
-		// 							    map: t.map_shower.map,
-		// 						icon : image,
-		// 							  });
 	
-		
-		var directionsRenderer = new google.maps.DirectionsRenderer({suppressInfoWindows :true, suppressMarkers : false , polylineOptions : {strokeColor:stroke, opacity:1}});
+	var map_shower_reader_handler = function (event,directionOverlay,new_id,results){
+		var directionsRenderer = new Renderer()
 			directionsRenderer.setMap(t.map_shower.map);
 			directionsRenderer.setDirections(directionOverlay);
+			
 			var id = new_id;
-			var currentData = t.display_port_shower.loaded_routes;
-			currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
-			
-			
-		
-		 google.maps.event.addListener(directionsRenderer.polylineOptions, 'click', function(a,b) {
-				$("#"+t.map_shower.map.b.id).trigger('route_selected',id);
+			directionsRenderer.setData(t.data.get(new_id));
+			t.direction_renderes[new_id] = directionsRenderer;
+		 google.maps.event.addListener(directionsRenderer.view.polylineOptions, 'mouseout', function(a,b) {
 				var id = new_id;
-				var currentData = t.display_port_shower.loaded_routes;
-				currentData = currentData[t.display_port_shower.loaded_route_ids[new_id]]
+				//directionsRenderer.view.setOptions({polylineOptions : {strokeOpacity:0.3, strokeColor: directionsRenderer.stoke}});
+				directionsRenderer.view.b.polylines[0].setOptions({strokeOpacity:0.3, strokeColor:directionsRenderer.stroke });
+				//directionsRenderer.view.setDirections(directionsRenderer.view.directions);
+				$("#"+t.map_shower.map.b.id).trigger('route_unselected',id);
 				
-
+				directionsRenderer.close_window();
+			 
 
 			});
+			 google.maps.event.addListener(directionsRenderer.view.polylineOptions, 'mouseover', function(a,b) {
+					
+					var id = new_id;
+					$("#"+t.map_shower.map.b.id).trigger('route_selected',id);
+					
+					var currentData = t.data.get(id);
+					
+					directionsRenderer.view.b.polylines[0].setOptions({strokeOpacity:1, strokeColor:'red' });
+					
+					directionsRenderer.open_window((currentData['wantorhave']=="want") ? currentData["name"] +" wants a ride " : currentData["name"] + " needs a ride");
+					
+					
+					//directionsRenderer.view.setDirections(directionsRenderer.view.directions);
+					instance = t.map_shower.map;
 
+				});
+				
+				$('#ride_list  tr ').mouseover(function(event) {
+					instance = event.target;
+					$(event.target.parentElement).toggleClass("highlight");
+					id = event.target.parentElement.id.split("_")[1];
+					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:1, strokeColor:'red' });
+					
+					t.direction_renderes[id].open_window(( t.data.get(id)['wantorhave']=="want") ? t.data.get(id)["name"] +" wants a ride " : t.data.get(id)["name"] + " needs a ride");
+					
+					
+					//$(event.target)
+				  });
+			$('#ride_list  tr ').mouseout(function(event){
+				t.direction_renderes[id].close_window();
+				$(event.target.parentElement).toggleClass("highlight");
+					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:0.3, strokeColor:directionsRenderer.stroke });
+				
+				
+			})
 
 	}
 	
@@ -378,11 +438,14 @@ function app(){
 					url: getBaseURL() + url
 					}).done(function(a) { 
 					  	//t.display_port_shower.processRoute([0,a]);	
-						t.display_port_picker.processRoute([0,a]);
+						t.data.processRoute([0,a]);
 					});
 			
 			}
 
+		
+	}
+	var dirRenderer = function (){
 		
 	}
 	var _construct = function (){
@@ -398,7 +461,7 @@ function app(){
 				}	
 				});
 				
-			t.globalDirectionRender = new google.maps.DirectionsRenderer({"suppressInfoWindows": true});
+			t.globalDirectionRender = new Renderer();
 			t.globalDirectionRender.setMap(t.map_picker.map);
 
 			 route = new my_route(t.map_picker,true);
@@ -406,16 +469,22 @@ function app(){
 		if ($('#map_shower').length != 0){
 			 t.map_shower = new my_map('map_shower');
 			$('#map_shower').bind("route_processed", map_shower_reader_handler);
-			$('#map_shower').bind('route_selected', function (Event,id){
-
+			$('#map_shower').bind('route_unselected', function (Event,id){
+				$("#ride_"+id).first().toggleClass("highlight");
+			
+			});
+			$('#map_shower').bind('route_selected' , function (Event,id){
+				console.log(id);
+				console.log($("#ride_"+id)[0]);
+				$("#ride_"+id).first().toggleClass("highlight");
 				if (t.map_picker){
 								
 					//$('#map_shower').one("route_processed",map_picker_handler);
 						
 						
-					selectRouteFromGetId(id);
+					//selectRouteFromGetId(id);
 				}
-			})
+			});
 
 			$('#map_shower').bind("bounds_changed",function(Event,map){
 				if (t.map_picker){
@@ -425,15 +494,15 @@ function app(){
 			});
 
 			 route = new my_route(t.map_shower,false);
-				t.display_port_shower = new my_route_display(t.map_shower,route);
-		  t.display_port_picker  = new my_route_display(t.map_shower,route);
+					t.data = new my_route_data(t.map_shower,route);
+			
+		 // t.display_port_picker  = new my_route_display(t.map_shower,route);
 		}
 		
 		
 	}
 	
-	 t.map_picker_handler = function (event,directionOverlay){
-		console.log(directionOverlay);
+	 t.map_picker_handler = function (event,directionOverlay,user_id){
 		t.globalDirectionRender.setDirections(directionOverlay);
 	}
 	
@@ -443,7 +512,6 @@ function app(){
 		lat = google.loader.ClientLocation.latitude;
 		lon = google.loader.ClientLocation.longitude;
 	    } else {
-		debug('Location set manually');
 		lat = '36.9742';
 		lon = '-122.0297';
 	    }

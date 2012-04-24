@@ -5,6 +5,7 @@ function getBaseURL () {
 }
 var lat = null;
 var lon = null;
+var MY_APP = null;
 function debug(msg) {
     if (DEBUG_ENABLED) {
 	console.log(msg);
@@ -114,6 +115,11 @@ function my_route_data(my_map,route){
 			}
 				 
 				t.my_route.calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments,return_id,results);
+			}else{
+				
+				$("#"+t.map.b.id).trigger('map_data_loaded');
+				google.maps.event.trigger(t.map, 'resize');
+				
 			}
 		
 	}
@@ -358,20 +364,91 @@ function Renderer(){
 				t.infoMarker =  new google.maps.Marker({
 			    visible : false
 			});
-			 t.view = new google.maps.DirectionsRenderer({suppressInfoWindows :true, suppressMarkers : false , polylineOptions : {strokeColor:t.stroke, strokeOpacity:0.3}});
+			 t.view = new google.maps.DirectionsRenderer({suppressInfoWindows :true, suppressMarkers : false , polylineOptions : {strokeColor:t.stroke, strokeOpacity:0.5}});
 	}
 	_construct();
 	
 }	
 
 function app(){
-	
 	var t = this;
 	t.map_shower = false;
 	t.direction_renderes ={};
 	t.map_picker = false;
 	t.globalDirectionRender = false;	
 	t.current_data = false;
+	var _construct = function (){
+		set_lat_lng();
+		
+		if ($('#map_picker').length != 0){
+			t.map_picker = new my_map('map_picker');
+		 	t.map_picker.map.setCenter(t.latLon); 
+			google.maps.event.trigger(t.map_picker.map, 'resize');
+			
+			
+			$('#map_picker').bind("route_processed",t.map_picker_handler);
+			$('#map_picker').bind("bounds_changed",function(Event,map){
+				if (t.map_shower){
+				//	t.map_shower.map.setCenter(map.center);
+				// 	t.map_shower.map.setZoom(map.getZoom())
+				}	
+				});
+				
+			t.globalDirectionRender = new Renderer();
+			t.globalDirectionRender.setMap(t.map_picker.map);
+
+
+
+			 route = new my_route(t.map_picker,true);
+		
+		
+		}
+		if ($('#map_shower').length != 0){
+			 t.map_shower = new my_map('map_shower');
+			$("#map_shower").first().hide();
+			$("#map_shower").bind('map_data_loaded',function(){
+				$("#map_shower").first().show();
+				console.log(t.latLon);
+				t.map_shower.map.setCenter(t.latLon); 
+				google.maps.event.trigger(t.map_shower.map, 'resize');
+
+
+			})
+			
+			$('#map_shower').bind("route_processed", map_shower_reader_handler);
+			$('#map_shower').bind('route_unselected', function (Event,id){
+				$("#ride_"+id).first().toggleClass("highlight");
+			
+			});
+			$('#map_shower').bind('route_selected' , function (Event,id){
+				console.log(id);
+				console.log($("#ride_"+id)[0]);
+				$("#ride_"+id).first().toggleClass("highlight");
+				if (t.map_picker){
+								
+					//$('#map_shower').one("route_processed",map_picker_handler);
+						
+						
+					//selectRouteFromGetId(id);
+				}
+			});
+
+			$('#map_shower').bind("bounds_changed",function(Event,map){
+				if (t.map_pic){
+					//t.map_picker.map.setCenter(map.center);
+					//t.map_picker.map.setZoom(map.getZoom())
+				}	
+			});
+
+			 route = new my_route(t.map_shower,false);
+					t.data = new my_route_data(t.map_shower,route);
+			
+		 // t.display_port_picker  = new my_route_display(t.map_shower,route);
+		}
+		
+		
+	}
+	
 	
 	var map_shower_reader_handler = function (event,directionOverlay,new_id,results){
 		var directionsRenderer = new Renderer()
@@ -383,8 +460,8 @@ function app(){
 			t.direction_renderes[new_id] = directionsRenderer;
 		 google.maps.event.addListener(directionsRenderer.view.polylineOptions, 'mouseout', function(a,b) {
 				var id = new_id;
-				//directionsRenderer.view.setOptions({polylineOptions : {strokeOpacity:0.3, strokeColor: directionsRenderer.stoke}});
-				directionsRenderer.view.b.polylines[0].setOptions({strokeOpacity:0.3, strokeColor:directionsRenderer.stroke });
+				//directionsRenderer.view.setOptions({polylineOptions : {strokeOpacity:0.5, strokeColor: directionsRenderer.stoke}});
+				directionsRenderer.view.b.polylines[0].setOptions({strokeOpacity:0.5, strokeColor:directionsRenderer.stroke });
 				//directionsRenderer.view.setDirections(directionsRenderer.view.directions);
 				$("#"+t.map_shower.map.b.id).trigger('route_unselected',id);
 				
@@ -423,7 +500,7 @@ function app(){
 			$('#ride_list  tr ').mouseout(function(event){
 				t.direction_renderes[id].close_window();
 				$(event.target.parentElement).toggleClass("highlight");
-					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:0.3, strokeColor:directionsRenderer.stroke });
+					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:0.5, strokeColor:directionsRenderer.stroke });
 				
 				
 			})
@@ -448,59 +525,7 @@ function app(){
 	var dirRenderer = function (){
 		
 	}
-	var _construct = function (){
-		
-		set_lat_lng();
-		if ($('#map_picker').length != 0){
-			t.map_picker = new my_map('map_picker');
-			$('#map_picker').bind("route_processed",t.map_picker_handler);
-			$('#map_picker').bind("bounds_changed",function(Event,map){
-				if (t.map_shower){
-					t.map_shower.map.setCenter(map.center);
-					t.map_shower.map.setZoom(map.getZoom())
-				}	
-				});
-				
-			t.globalDirectionRender = new Renderer();
-			t.globalDirectionRender.setMap(t.map_picker.map);
 
-			 route = new my_route(t.map_picker,true);
-		}
-		if ($('#map_shower').length != 0){
-			 t.map_shower = new my_map('map_shower');
-			$('#map_shower').bind("route_processed", map_shower_reader_handler);
-			$('#map_shower').bind('route_unselected', function (Event,id){
-				$("#ride_"+id).first().toggleClass("highlight");
-			
-			});
-			$('#map_shower').bind('route_selected' , function (Event,id){
-				console.log(id);
-				console.log($("#ride_"+id)[0]);
-				$("#ride_"+id).first().toggleClass("highlight");
-				if (t.map_picker){
-								
-					//$('#map_shower').one("route_processed",map_picker_handler);
-						
-						
-					//selectRouteFromGetId(id);
-				}
-			});
-
-			$('#map_shower').bind("bounds_changed",function(Event,map){
-				if (t.map_picker){
-					t.map_picker.map.setCenter(map.center);
-					t.map_picker.map.setZoom(map.getZoom())
-				}	
-			});
-
-			 route = new my_route(t.map_shower,false);
-					t.data = new my_route_data(t.map_shower,route);
-			
-		 // t.display_port_picker  = new my_route_display(t.map_shower,route);
-		}
-		
-		
-	}
 	
 	 t.map_picker_handler = function (event,directionOverlay,user_id){
 		t.globalDirectionRender.setDirections(directionOverlay);
@@ -515,6 +540,8 @@ function app(){
 		lat = '36.9742';
 		lon = '-122.0297';
 	    }
+	t.latLon = new google.maps.LatLng(lat, lon);
+	
 	}
 	_construct();
 	
@@ -522,7 +549,7 @@ function app(){
 }
 
 function initialize(){
-	instance = new app();
+	MY_APP = new app();
 	
 
 	//instance = route; 

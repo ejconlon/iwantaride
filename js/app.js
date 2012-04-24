@@ -116,7 +116,7 @@ function my_route_data(my_map,route){
 				 
 				t.my_route.calcRoute(starLatLng,endLatLng, t.processRoute,cb_arguments,return_id,results);
 			}else{
-				
+			
 				$("#"+t.map.b.id).trigger('map_data_loaded');
 				google.maps.event.trigger(t.map, 'resize');
 				
@@ -408,7 +408,14 @@ function app(){
 			$("#map_shower").first().hide();
 			$("#map_shower").bind('map_data_loaded',function(){
 				$("#map_shower").first().show();
-				console.log(t.latLon);
+					if ($('a[href*="logout"]').first().html()== null){
+						t.data.loaded_routes.map(function (a){
+							a["name"] = "Someone";
+							return a;
+
+						})
+					}
+				
 				t.map_shower.map.setCenter(t.latLon); 
 				google.maps.event.trigger(t.map_shower.map, 'resize');
 
@@ -421,8 +428,6 @@ function app(){
 			
 			});
 			$('#map_shower').bind('route_selected' , function (Event,id){
-				console.log(id);
-				console.log($("#ride_"+id)[0]);
 				$("#ride_"+id).first().toggleClass("highlight");
 				if (t.map_picker){
 								
@@ -472,10 +477,10 @@ function app(){
 			 google.maps.event.addListener(directionsRenderer.view.polylineOptions, 'mouseover', function(a,b) {
 					
 					var id = new_id;
+					
 					$("#"+t.map_shower.map.b.id).trigger('route_selected',id);
 					
 					var currentData = t.data.get(id);
-					
 					directionsRenderer.view.b.polylines[0].setOptions({strokeOpacity:1, strokeColor:'red' });
 					
 					directionsRenderer.open_window((currentData['wantorhave']=="want") ? currentData["name"] +" wants a ride " : currentData["name"] + " needs a ride");
@@ -487,21 +492,24 @@ function app(){
 				});
 				
 				$('#ride_list  tr ').mouseover(function(event) {
-					instance = event.target;
-					$(event.target.parentElement).toggleClass("highlight");
-					id = event.target.parentElement.id.split("_")[1];
-					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:1, strokeColor:'red' });
 					
-					t.direction_renderes[id].open_window(( t.data.get(id)['wantorhave']=="want") ? t.data.get(id)["name"] +" wants a ride " : t.data.get(id)["name"] + " needs a ride");
+					id = event.target.parentElement.id.split("_")[1];
+					if (!isNaN(id) ){
+						$(event.target.parentElement).toggleClass("highlight");
+						t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:1, strokeColor:'red' });
+						t.direction_renderes[id].open_window(( t.data.get(id)['wantorhave']=="want") ? t.data.get(id)["name"] +" wants a ride " : t.data.get(id)["name"] + " needs a ride");
+					}
 					
 					
 					//$(event.target)
 				  });
 			$('#ride_list  tr ').mouseout(function(event){
+				if (!isNaN(id) ){
+				
 				t.direction_renderes[id].close_window();
 				$(event.target.parentElement).toggleClass("highlight");
 					t.direction_renderes[id].view.b.polylines[0].setOptions({strokeOpacity:0.5, strokeColor:directionsRenderer.stroke });
-				
+				}
 				
 			})
 
